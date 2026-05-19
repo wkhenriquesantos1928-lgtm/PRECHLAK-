@@ -1,2 +1,0 @@
-# PRECHLAK-
-osint
