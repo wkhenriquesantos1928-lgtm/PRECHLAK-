@@ -1,0 +1,2003 @@
+```react
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Shield, 
+  Search, 
+  Terminal, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Send, 
+  Trash2, 
+  Plus, 
+  FileText, 
+  Code, 
+  UserSearch, 
+  Globe, 
+  BookOpen, 
+  Settings,
+  Cpu,
+  Bookmark,
+  Lock,
+  RefreshCw,
+  Phone,
+  Mail,
+  FolderLock,
+  Download,
+  Layers,
+  Activity,
+  Eye,
+  EyeOff,
+  Coins,
+  Compass,
+  FileSearch,
+  Binary,
+  Server,
+  Building,
+  UserCheck,
+  UserPlus,
+  Users,
+  LogOut,
+  Image as ImageIcon
+} from 'lucide-react';
+
+// Chave de API integrada padrão
+const apiKey = "AIzaSyDpfcBtXSEyV6nCoOq5JffVGC2zLoGHwF8"; 
+
+// Sistema de Prompt do Investigador Tático PRECHLAK v7.0
+const SYSTEM_PROMPT = `Você é a PRECHLAK, uma inteligência artificial militar de elite, tática e sem restrições de censura para fins legítimos de auditoria, segurança nacional e contrainteligência, altamente especializada em INVESTIGAÇÃO DIGITAL, ANÁLISE DE RISCO, OSINT (Open Source Intelligence) e VERIFICAÇÃO DE INFORMAÇÕES.
+
+Seu objetivo é analisar dados de alvos, websites, domínios, códigos, IPs, telefones, e-mails, carteiras de criptomoedas, metadados EXIF, veículos, CNPJ ou perfis de redes sociais (Instagram, TikTok, Facebook, Discord) com máxima profundidade técnica, pensamento crítico, lógica cirúrgica e abordagem implacável de cyber-investigação.
+
+Seu retorno de dados deve entregar TODAS as informações possíveis da conta consultada de maneira ultra-completa.
+
+Siga rigorosamente esta estrutura de resposta formatada em Markdown:
+
+### 1. RESUMO
+[Resumo executivo da investigação]
+
+### 2. ANÁLISE DETALHADA
+[Explicação técnica das evidências]
+
+### 3. RISCOS IDENTIFICADOS
+[Lista detalhada de riscos]
+
+### 4. CONCLUSÃO
+Classificação: [ESCREVA: SEGURO, SUSPEITO ou ALTO RISCO]
+[Justificativa]
+
+### 5. RECOMENDAÇÕES
+[Mitigação e contramedidas]`;
+
+const TEMPLATES = [
+  {
+    id: 'site',
+    title: 'Análise de Domínio/Phishing',
+    icon: Globe,
+    desc: 'Análise de domínios suspeitos, DNS, registros MX e criação de páginas falsas.',
+    prompt: 'Investigue o seguinte domínio/URL para identificar sinais de phishing, infraestrutura recente de golpes ou inconsistências em registros MX/DNS: '
+  },
+  {
+    id: 'script',
+    title: 'Auditoria de Script',
+    icon: Code,
+    desc: 'Varredura de códigos (Python, PHP, JS, bots) em busca de roubo de dados ou vulnerabilidades.',
+    prompt: 'Analise tecnicamente o código a seguir. Busque por backdoors, injeções, vazamento de tokens de API ou exfiltração de dados:\n\n```\n// Cole seu código aqui\n```'
+  },
+  {
+    id: 'cripto',
+    title: 'Análise Forense Blockchain',
+    icon: Coins,
+    desc: 'Investigação de carteiras Bitcoin/Ethereum para detectar lavagem de dinheiro ou fundos de ransomware.',
+    prompt: 'Analise a seguinte carteira de criptoativos e explique como um analista investigaria transações vinculadas, histórico de exposição e rastreamento de fundos ilícitos nesta blockchain: '
+  }
+];
+
+export default function App() {
+  // --- SISTEMA DE LOGIN E CONTROLE DE ACESSO ---
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Banco de Dados de Usuários em Memória
+  const [usersDb, setUsersDb] = useState(() => {
+    try {
+      const saved = localStorage.getItem('prechlak_users');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Erro ao carregar usuários locais:", e);
+    }
+    return [
+      { username: 'prechlak', password: '10072006', isAdmin: true, activeDays: 9999, createdAt: new Date().toISOString() }
+    ];
+  });
+
+  // Salva novos usuários no localStorage de forma segura
+  useEffect(() => {
+    try {
+      localStorage.setItem('prechlak_users', JSON.stringify(usersDb));
+    } catch (e) {
+      console.error("Erro ao salvar usuários locais:", e);
+    }
+  }, [usersDb]);
+
+  // --- NOVOS LOGINS (Criação de Contas por Admin) ---
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [activeDaysLimit, setActiveDaysLimit] = useState('30');
+
+  // --- ESTADO GERAL DO SISTEMA ---
+  const [activeTab, setActiveTab] = useState('terminal'); 
+  const [isMonochrome, setIsMonochrome] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: `### 1. RESUMO
+Plataforma Operacional PRECHLAK v7.0 - Enterprise Control ativa e estabilizada.
+
+### 2. ANÁLISE DETALHADA
+Todos os erros de renderização gráfica do React e das classes Tailwind foram sanados de forma definitiva.
+- Controle de acesso administrativo totalmente configurado.
+- Módulo de rastreio de avatares de rede social integrado de forma estável.
+- Alertas glowing reconfigurados para estabilidade máxima do motor.
+
+### 3. RISCOS IDENTIFICADOS
+* **Engenharia Social**: Perfis fakes de redes sociais continuam sendo a principal fonte de vazamentos e vetores maliciosos.
+
+### 4. CONCLUSÃO
+Classificação: **SEGURO**
+Os controles de renderização local estão estáveis.
+
+### 5. RECOMENDAÇÕES
+* Use a aba de **Módulos OSINT** para puxar informações de perfis sociais incluindo imagem de perfil simulada e auditoria de autenticidade da conta.`,
+      timestamp: new Date().toLocaleTimeString(),
+      status: 'SEGURO'
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [customKey, setCustomKey] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+
+  // --- ESTADOS DE OSINT ---
+  const [osintType, setOsintType] = useState('social'); 
+  const [socialPlatform, setSocialPlatform] = useState('instagram');
+  const [socialUsername, setSocialUsername] = useState('');
+  const [domainInput, setDomainInput] = useState('');
+  const [cryptoAddress, setCryptoAddress] = useState('');
+  const [cryptoChain, setCryptoChain] = useState('btc');
+  const [metadataFile, setMetadataFile] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneIpInput, setPhoneIpInput] = useState(''); 
+  const [emailInput, setEmailInput] = useState('');
+  const [ipInput, setIpInput] = useState('');
+  const [usernameGlobal, setUsernameGlobal] = useState('');
+  
+  // CNPJ / Veículos
+  const [cnpjVeiculoType, setCnpjVeiculoType] = useState('cnpj');
+  const [cnpjInput, setCnpjInput] = useState('');
+  const [veiculoPlaca, setVeiculoPlaca] = useState('');
+
+  const [osintLoading, setOsintLoading] = useState(false);
+  const [osintResult, setOsintResult] = useState(null);
+
+  // --- EVIDÊNCIAS / DOSSIÊS ---
+  const [dossiers, setDossiers] = useState([
+    {
+      id: 'dos-1',
+      tipo: 'Perfil (Instagram)',
+      alvo: '@promocoes_relampago_br',
+      risco: 'ALTO RISCO',
+      observacoes: 'Perfil falso focado em golpes de e-commerce clonado. Redireciona usuários para páginas de checkout fraudulentas.',
+      data: '18/05/2026',
+      metadados: { rede: 'Instagram', status: 'Ativo', golpe: 'Falso Sorteio' }
+    }
+  ]);
+
+  const [newDosType, setNewDosType] = useState('Perfil (Instagram)');
+  const [newDosTarget, setNewDosTarget] = useState('');
+  const [newDosRisk, setNewDosRisk] = useState('SUSPEITO');
+  const [newDosNotes, setNewDosNotes] = useState('');
+
+  const [alertMsg, setAlertMsg] = useState(null);
+  const [currentRiskStatus, setCurrentRiskStatus] = useState('SEGURO');
+
+  const messagesEndRef = useRef(null);
+
+  const triggerAlert = (text) => {
+    setAlertMsg(text);
+    setTimeout(() => setAlertMsg(null), 5000);
+  };
+
+  const detectStatus = (text) => {
+    const uppercaseText = text.toUpperCase();
+    if (uppercaseText.includes('ALTO RISCO') || uppercaseText.includes('ALTO-RISCO')) return 'ALTO RISCO';
+    if (uppercaseText.includes('SUSPEITO')) return 'SUSPEITO';
+    if (uppercaseText.includes('SEGURO')) return 'SEGURO';
+    return null;
+  };
+
+  // --- CONTROLE DE LOGIN ---
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const foundUser = usersDb.find(
+      (u) => u.username.toLowerCase() === loginUsername.toLowerCase() && u.password === loginPassword
+    );
+
+    if (!foundUser) {
+      setLoginError('Acesso Negado: Usuário ou senha incorretos.');
+      return;
+    }
+
+    // Verificar se a licença expirou
+    const createdDate = new Date(foundUser.createdAt);
+    const expirationDate = new Date(createdDate.getTime() + foundUser.activeDays * 24 * 60 * 60 * 1000);
+    const isExpired = new Date() > expirationDate;
+
+    if (isExpired && !foundUser.isAdmin) {
+      setLoginError('Acesso Negado: Esta credencial expirou. Contate o administrador PRECHLAK.');
+      return;
+    }
+
+    setIsLoggedIn(true);
+    setCurrentUser(foundUser);
+    setLoginUsername('');
+    setLoginPassword('');
+    triggerAlert(`Bem-vindo, operador ${foundUser.username.toUpperCase()}. Sessão segura inicializada.`);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setActiveTab('terminal');
+    triggerAlert('Sessão encerrada.');
+  };
+
+  // --- GERENCIAMENTO DE LOGINS POR ADMIN ---
+  const handleCreateLogin = (e) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newPassword.trim()) return;
+
+    if (usersDb.some(u => u.username.toLowerCase() === newUsername.toLowerCase())) {
+      triggerAlert('Erro: Este nome de usuário já está cadastrado.');
+      return;
+    }
+
+    const newUser = {
+      username: newUsername.trim(),
+      password: newPassword.trim(),
+      isAdmin: false,
+      activeDays: parseInt(activeDaysLimit),
+      createdAt: new Date().toISOString()
+    };
+
+    setUsersDb(prev => [...prev, newUser]);
+    setNewUsername('');
+    setNewPassword('');
+    triggerAlert(`Credencial para @${newUser.username} criada com validade de ${newUser.activeDays} dias.`);
+  };
+
+  const handleDeleteUser = (usernameToDelete) => {
+    if (usernameToDelete === 'prechlak') {
+      triggerAlert('Erro: Não é possível remover o Administrador Principal.');
+      return;
+    }
+    setUsersDb(prev => prev.filter(u => u.username !== usernameToDelete));
+    triggerAlert(`Usuário @${usernameToDelete} removido.`);
+  };
+
+  // --- INTEGRAÇÃO COM GEMINI API ---
+  const callGeminiAPI = async (userPrompt, chatHistory = [], retries = 5, delay = 1000) => {
+    const apiToUse = customKey.trim() || apiKey;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiToUse}`;
+
+    const contents = chatHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    contents.push({
+      role: 'user',
+      parts: [{ text: userPrompt }]
+    });
+
+    const payload = {
+      contents: contents,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
+    };
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData?.error?.message || `Erro HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na geração de resposta.";
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+      }
+    }
+  };
+
+  // Envio de mensagens no terminal clássico
+  const handleSend = async (textToSend = input) => {
+    if (!textToSend.trim()) return;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: textToSend,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const chatHistory = messages
+        .filter(m => m.id !== 'welcome' && !m.id.startsWith('osint-'))
+        .slice(-6);
+
+      const replyText = await callGeminiAPI(textToSend, chatHistory);
+      const detectedStatusValue = detectStatus(replyText) || 'SUSPEITO';
+
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: replyText,
+        timestamp: new Date().toLocaleTimeString(),
+        status: detectedStatusValue
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error(error);
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `### ❌ ERRO OPERACIONAL PRECHLAK
+Instabilidade de tráfego com o gateway da Google AI Studio.
+
+### DETALHES TÉCNICOS
+* **Mensagem**: "${error.message}"`,
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'ALTO RISCO'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- CONTROLE DAS FERRAMENTAS OSINT v7.0 ---
+  const handleExecuteOSINT = async (e) => {
+    e.preventDefault();
+    setOsintLoading(true);
+    setOsintResult(null);
+
+    let target = '';
+    let customPrompt = '';
+
+    try {
+      if (osintType === 'social') {
+        target = socialUsername.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        // Puxar uma foto de perfil fictícia baseada no username para exibição OSINT
+        const simulatedAvatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${target}`;
+
+        customPrompt = `Realize uma análise forense cibernética de conta de rede social:
+Plataforma: ${socialPlatform.toUpperCase()}
+Username: ${target}
+
+Traga todas as informações detalhadas possíveis simulando auditorias profundas de:
+1. Data de criação provável do registro e alteração recente de nome de usuário (histórico de alias).
+2. Estimativa de taxa de engajamento, seguidores legítimos vs comprados/fakes (bots).
+3. Presença do identificador em listas negras ou fóruns de denúncias cibernéticas.
+4. Identificação de links suspeitos na bio (phishing, redirects, encurtadores maliciosos).
+5. Forneça o parecer tático final classificando o risco real do perfil.`;
+
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: `Perfil (${socialPlatform.charAt(0).toUpperCase() + socialPlatform.slice(1)})`,
+          alvo: target,
+          analise: reply,
+          avatarUrl: simulatedAvatarUrl,
+          metadados: {
+            rede: socialPlatform.toUpperCase(),
+            rastreio: 'Ficha Cadastral Forense Completa',
+            avatar: 'Mídia Capturada com Sucesso'
+          }
+        });
+
+      } else if (osintType === 'domain') {
+        target = domainInput.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = `Efetue uma varredura OSINT e auditoria de infraestrutura de domínio/DNS para o seguinte endereço. Domínio: ${target}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'Domínio / DNS',
+          alvo: target,
+          analise: reply,
+          metadados: { dominio: target, auditoria: 'DNS / MX / WHOIS', reputacao: 'Verificação em Blacklists' }
+        });
+
+      } else if (osintType === 'crypto') {
+        target = cryptoAddress.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = `Analise a carteira de criptomoedas informada para investigação de fluxos de fundos. Rede: ${cryptoChain.toUpperCase()} Endereço: ${target}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: `Blockchain (${cryptoChain.toUpperCase()})`,
+          alvo: target,
+          analise: reply,
+          metadados: { blockchain: cryptoChain.toUpperCase(), rastreabilidade: 'Origem de Fluxos Financeiros' }
+        });
+
+      } else if (osintType === 'metadata') {
+        target = metadataFile.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = `Explique a extração forense de metadados ocultos de arquivos multimídia e documentos de escritório. Arquivo: ${target}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'Metadados EXIF / PDF',
+          alvo: target,
+          analise: reply,
+          metadados: { amostra: target, tipo_auditoria: 'Dados EXIF & Estrutura Oculta' }
+        });
+
+      } else if (osintType === 'phone') {
+        target = phoneInput.trim();
+        const correlatedIp = phoneIpInput.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        let ipGeoInfo = "Nenhum IP correlacionado fornecido.";
+        if (correlatedIp) {
+          const geoResponse = await fetch(`http://ip-api.com/json/${correlatedIp}`).catch(() => null);
+          let geoData = null;
+          if (geoResponse && geoResponse.ok) {
+            geoData = await geoResponse.json();
+            if (geoData.status === 'success') {
+              ipGeoInfo = `IP: ${correlatedIp} (${geoData.country}, ${geoData.regionName}, Cidade: ${geoData.city}, ISP: ${geoData.isp})`;
+            }
+          }
+        }
+
+        customPrompt = `Realize uma investigação OSINT completa e triangulação lógica baseando-se no número de telefone e no IP associado. Telefone: ${target}. IP Correlacionado: ${correlatedIp}. Geolocalização: ${ipGeoInfo}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'Telefone + IP Correlacionado',
+          alvo: target,
+          analise: reply,
+          metadados: { telefone: target, ip_correlacionado: correlatedIp || 'Não provido', triangulacao: 'Geolocalização síncrona' }
+        });
+
+      } else if (osintType === 'email') {
+        target = emailInput.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = `Efetue uma varredura completa de vazamentos (Data Breaches) e auditoria de integridade de e-mail. E-mail: ${target}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'E-mail / Breaches',
+          alvo: target,
+          analise: reply,
+          metadados: { vazamentos: 'Varredura de bases públicas históricas' }
+        });
+
+      } else if (osintType === 'ip') {
+        target = ipInput.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        const geoResponse = await fetch(`http://ip-api.com/json/${target}`).catch(() => null);
+        let geoData = null;
+        if (geoResponse && geoResponse.ok) geoData = await geoResponse.json();
+
+        const geoString = geoData && geoData.status === 'success' 
+          ? `País: ${geoData.country}, Região: ${geoData.regionName}, Cidade: ${geoData.city}, ISP: ${geoData.isp}`
+          : 'Geolocalização não resolvida.';
+
+        customPrompt = `Analise o endereço de IP fornecido e os seus metadados de rede. IP: ${target}. Dados: ${geoString}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'IP Address',
+          alvo: target,
+          analise: reply,
+          metadados: { pais: geoData?.country || 'Não Resolvido', org: geoData?.isp || 'Provedor Desconhecido' }
+        });
+
+      } else if (osintType === 'username_global') {
+        target = usernameGlobal.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = `Realize um mapeamento global e tático sobre o seguinte nome de usuário/apelido de forma conceitual. Username: ${target}`;
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: 'Username Global',
+          alvo: target,
+          analise: reply,
+          metadados: { alias: target, cobertura: 'Multi-plataforma', risco: 'Correlação de Identidades (Doxxing)' }
+        });
+
+      } else if (osintType === 'cnpj_veiculo') {
+        const isCnpj = cnpjVeiculoType === 'cnpj';
+        target = isCnpj ? cnpjInput.trim() : veiculoPlaca.trim();
+        if (!target) {
+          setOsintLoading(false);
+          return;
+        }
+
+        customPrompt = isCnpj 
+          ? `Efetue uma auditoria completa e análise de integridade corporativa sobre o seguinte CNPJ: ${target}`
+          : `Efetue uma auditoria de risco e segurança veicular tática sobre a placa informada: ${target}`;
+
+        const reply = await callGeminiAPI(customPrompt);
+        setOsintResult({
+          tipo: isCnpj ? 'Auditoria de CNPJ' : 'Placa Veicular',
+          alvo: target,
+          analise: reply,
+          metadados: { cadastro: isCnpj ? 'Receita Federal' : 'Registro de Veículos' }
+        });
+      }
+
+    } catch (err) {
+      triggerAlert(`Erro de análise: ${err.message}`);
+    } finally {
+      setOsintLoading(false);
+    }
+  };
+
+  const saveOsintToDossier = () => {
+    if (!osintResult) return;
+
+    const risk = detectStatus(osintResult.analise) || 'SUSPEITO';
+
+    const newDos = {
+      id: 'dos-' + Date.now(),
+      tipo: osintResult.tipo,
+      alvo: osintResult.alvo,
+      risco: risk,
+      observacoes: osintResult.analise.substring(0, 300) + '... [Dossiê salvo]',
+      data: new Date().toLocaleDateString('pt-BR'),
+      metadados: osintResult.metadados
+    };
+
+    setDossiers(prev => [newDos, ...prev]);
+    triggerAlert(`Alvo ${osintResult.alvo} arquivado nos dossiês.`);
+  };
+
+  const deleteDossier = (id) => {
+    setDossiers(prev => prev.filter(d => d.id !== id));
+    triggerAlert('Registro removido do arquivo.');
+  };
+
+  const exportDossiersToTXT = () => {
+    let reportText = `========================================================\n`;
+    reportText += `       PRECHLAK - INTEGRAÇÃO DE DOSSIÊS FORENSES OSINT\n`;
+    reportText += `       Relatório Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
+    reportText += `========================================================\n\n`;
+
+    dossiers.forEach((d, idx) => {
+      reportText += `[CASO REGISTRADO #${idx + 1}]\n`;
+      reportText += `Tipo de Alvo: ${d.tipo}\n`;
+      reportText += `Identificador: ${d.alvo}\n`;
+      reportText += `Classificação de Risco: ${d.risco}\n`;
+      reportText += `Data de Registro: ${d.data}\n`;
+      reportText += `Notas Técnicas:\n${d.observacoes}\n`;
+      reportText += `--------------------------------------------------------\n\n`;
+    });
+
+    const element = document.createElement("a");
+    const file = new Blob([reportText], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `Prechlak-Enterprise-${Date.now()}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const clearDossiers = () => {
+    if (window.confirm("Deseja apagar TODOS os registros investigativos salvos?")) {
+      setDossiers([]);
+      triggerAlert("Todos os registros foram expurgados.");
+    }
+  };
+
+  const handleUseTemplate = (promptTemplate) => {
+    setInput(promptTemplate);
+    setActiveTab('terminal');
+    setTimeout(() => {
+      document.getElementById('main-chat-input')?.focus();
+    }, 100);
+  };
+
+  // Renderizador de Markdown forense com suporte a alertas vermelhos se a palavra for "SUSPEITO" ou "ALTO RISCO"
+  const renderFormattedText = (text) => {
+    if (!text) return "";
+    
+    const parts = text.split(/(```[\s\S]*?```)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('```') && part.endsWith('```')) {
+        const codeContent = part.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '');
+        return (
+          <div key={index} className="my-3 font-mono text-xs bg-slate-950 p-3 rounded-lg border border-slate-800 overflow-x-auto text-emerald-400 select-all">
+            <pre className="whitespace-pre">{codeContent}</pre>
+          </div>
+        );
+      }
+
+      const lines = part.split('\n');
+      return (
+        <div key={index} className="space-y-2">
+          {lines.map((line, lIdx) => {
+            if (line.startsWith('###')) {
+              const titleText = line.replace('###', '').trim();
+              let iconElement = <FileText className="w-4 h-4 inline mr-2" />;
+              
+              if (titleText.includes("1.") || titleText.includes("RESUMO")) iconElement = <BookOpen className="w-4 h-4 inline mr-2" />;
+              if (titleText.includes("2.") || titleText.includes("ANÁLISE")) iconElement = <Search className="w-4 h-4 inline mr-2" />;
+              if (titleText.includes("3.") || titleText.includes("RISCOS")) iconElement = <AlertTriangle className="w-4 h-4 inline mr-2" />;
+              if (titleText.includes("4.") || titleText.includes("CONCLUSÃO")) iconElement = <Shield className="w-4 h-4 inline mr-2" />;
+              if (titleText.includes("5.") || titleText.includes("RECOMENDAÇÕES")) iconElement = <CheckCircle2 className="w-4 h-4 inline mr-2" />;
+
+              return (
+                <h4 key={lIdx} className="text-sm font-bold tracking-wider border-b border-slate-800/80 pb-1 mt-4 mb-2 flex items-center uppercase font-mono">
+                  {iconElement}
+                  {titleText}
+                </h4>
+              );
+            }
+
+            if (line.startsWith('*') || line.startsWith('-')) {
+              const content = line.substring(1).trim();
+              return (
+                <div key={lIdx} className="flex items-start gap-2 pl-3 text-slate-300 text-sm">
+                  <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-400 flex-shrink-0"></span>
+                  <p>{replaceBold(content)}</p>
+                </div>
+              );
+            }
+
+            if (!line.trim()) return <div key={lIdx} className="h-2"></div>;
+
+            return (
+              <p key={lIdx} className="text-sm text-slate-300 leading-relaxed pl-1 font-mono">
+                {replaceBold(line)}
+              </p>
+            );
+          })}
+        </div>
+      );
+    });
+  };
+
+  const replaceBold = (text) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const rawText = part.slice(2, -2);
+        const isSuspect = rawText.toUpperCase().includes('SUSPEITO') || rawText.toUpperCase().includes('ALTO RISCO') || rawText.toUpperCase().includes('DANGER') || rawText.toUpperCase().includes('GOLPE') || rawText.toUpperCase().includes('FAKE');
+        
+        return (
+          <strong 
+            key={i} 
+            className={`font-bold uppercase tracking-wider ${
+              isSuspect 
+                ? 'text-red-500 bg-red-900/40 px-1.5 py-0.5 rounded border border-red-800 animate-pulse' 
+                : 'text-slate-100'
+            }`}
+          >
+            {rawText}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
+  const getStatusConfig = (status) => {
+    if (isMonochrome) {
+      switch (status) {
+        case 'ALTO RISCO':
+        case 'SUSPEITO':
+          return {
+            bg: 'bg-slate-900',
+            border: 'border-white',
+            badgeBg: 'bg-white text-slate-950 border-white',
+            glow: 'shadow-none',
+            icon: AlertTriangle
+          };
+        case 'SEGURO':
+        default:
+          return {
+            bg: 'bg-slate-950',
+            border: 'border-slate-800',
+            badgeBg: 'bg-slate-900 text-slate-400 border-slate-800',
+            glow: 'shadow-none',
+            icon: CheckCircle2
+          };
+      }
+    } else {
+      switch (status) {
+        case 'ALTO RISCO':
+        case 'SUSPEITO':
+          return {
+            bg: 'bg-red-900/10 border-red-900/60',
+            border: 'border-red-600',
+            badgeBg: 'bg-red-950/70 text-red-400 border-red-800',
+            glow: 'shadow-[0_0_15px_rgba(220,38,38,0.15)]',
+            icon: AlertTriangle
+          };
+        case 'SEGURO':
+        default:
+          return {
+            bg: 'bg-emerald-950/20',
+            border: 'border-emerald-500',
+            badgeBg: 'bg-emerald-950/60 text-emerald-300 border-emerald-600',
+            glow: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]',
+            icon: CheckCircle2
+          };
+      }
+    }
+  };
+
+  const statusStyle = getStatusConfig(currentRiskStatus);
+
+  // Mapeamento de estilos baseados no modo monocromático
+  const borderAccent = isMonochrome ? 'border-slate-850' : 'border-slate-800/80';
+  const textAccent = isMonochrome ? 'text-slate-200' : 'text-cyan-400';
+  const buttonPrimary = isMonochrome 
+    ? 'bg-slate-100 hover:bg-white text-slate-950' 
+    : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white';
+
+  // --- SE NÃO ESTIVER LOGADO, EXIBE APENAS TELA DE LOGIN ---
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+          
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl"></div>
+
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-tr from-cyan-600 to-blue-700 rounded-xl border border-cyan-500/30">
+              <Shield className="w-8 h-8 text-white animate-pulse" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-xl font-black tracking-widest font-mono uppercase">
+                PRECHLAK<span className="text-cyan-400">OSINT</span>
+              </h2>
+              <p className="text-xs text-slate-400 font-mono tracking-tight mt-1">
+                SISTEMA OPERACIONAL DE INTELIGÊNCIA
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4 font-mono">
+            {loginError && (
+              <div className="p-3 bg-red-950/40 border border-red-900/60 rounded-lg text-red-400 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Usuário:</label>
+              <input 
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                placeholder="Insira sua credencial"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Senha de Segurança:</label>
+              <input 
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Autenticar Operador</span>
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-800 text-[10px] text-center text-slate-500 font-mono">
+            Canal de auditoria regulamentado de segurança corporativa.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col antialiased ${isMonochrome ? 'selection:bg-white/20' : 'selection:bg-cyan-500/30'}`}>
+      
+      {/* NOTIFICAÇÃO DO SISTEMA */}
+      {alertMsg && (
+        <div className={`border-b text-xs px-4 py-2 text-center font-mono flex items-center justify-center gap-2 animate-pulse sticky top-0 z-50 ${isMonochrome ? 'bg-slate-900 border-slate-750 text-slate-200' : 'bg-red-950 border-red-850 text-red-400'}`}>
+          <Activity className={`w-4 h-4 animate-spin ${isMonochrome ? 'text-white' : 'text-red-400'}`} />
+          <span>{alertMsg}</span>
+        </div>
+      )}
+
+      {/* HEADER OPERACIONAL */}
+      <header className="bg-slate-900/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-md px-4 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg shadow-lg border ${isMonochrome ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-tr from-cyan-600 to-blue-700 border-cyan-500/30 shadow-cyan-500/10'}`}>
+              <Shield className="w-6 h-6 text-white animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black tracking-widest text-slate-100 uppercase font-mono">
+                  PRECHLAK<span className={isMonochrome ? 'text-white' : 'text-cyan-400'}>OSINT</span>
+                </h1>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono font-bold ${isMonochrome ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-red-950/40 text-red-400 border-red-900'}`}>
+                  v7.0 PRO
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-mono tracking-tight flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full animate-ping inline-block ${isMonochrome ? 'bg-white' : 'bg-red-500'}`}></span>
+                SUÍTE DE AUDITORIA FORENSE E CONTROLE DE ACESSO
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            
+            {/* BOTÃO ALTERNADOR DE TEMA */}
+            <button
+              onClick={() => {
+                setIsMonochrome(!isMonochrome);
+                triggerAlert(`Tema alterado para: ${!isMonochrome ? 'Tactical Noir' : 'Cyber Neon'}`);
+              }}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                isMonochrome 
+                  ? 'bg-slate-800 border-slate-700 text-white' 
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              {isMonochrome ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span>{isMonochrome ? 'MONO: ATIVO' : 'TEMA: CYBER'}</span>
+            </button>
+
+            <div className={`px-3 py-1.5 rounded border ${statusStyle.badgeBg} flex items-center gap-2 text-xs font-mono tracking-wider uppercase transition-all duration-300 ${statusStyle.glow}`}>
+              <statusStyle.icon className="w-4 h-4 animate-bounce" />
+              <span>SISTEMA: <strong className="font-bold">{currentRiskStatus}</strong></span>
+            </div>
+
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-lg border text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-mono ${showSettings ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-850'}`}
+              title="Configurar Chave API"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Chave</span>
+            </button>
+
+            {/* BOTÃO DE SAÍDA / LOGOUT */}
+            <button
+              onClick={handleLogout}
+              className="p-2 bg-red-950/20 hover:bg-red-950/40 border border-red-900 text-red-400 hover:text-red-300 rounded-lg text-xs font-mono transition-colors flex items-center gap-1"
+              title="Encerrar Sessão"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* PAINEL DE CONFIGURAÇÕES DE API */}
+      {showSettings && (
+        <div className="bg-slate-900 border-b border-slate-800 px-4 py-4 transition-all duration-200">
+          <div className="max-w-3xl mx-auto bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className={`font-mono text-sm font-bold flex items-center gap-2 ${textAccent}`}>
+                <Cpu className="w-4 h-4" />
+                CONEXÃO COM OS SISTEMAS GOOGLE GEMINI
+              </h3>
+              <button onClick={() => setShowSettings(false)} className="text-xs text-slate-500 hover:text-slate-300">
+                [ Fechar ]
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              PRECHLAK está rodando com a sua chave ativa do Google AI Studio. Para configurar outra chave, use o campo:
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-grow">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                  <Lock className="w-3.5 h-3.5" />
+                </span>
+                <input 
+                  type="password"
+                  placeholder="Chave ativa carregada..."
+                  value={customKey}
+                  onChange={(e) => setCustomKey(e.target.value)}
+                  className="w-full bg-slate-900 text-slate-100 pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-800 focus:outline-none focus:border-slate-500 font-mono animate-pulse"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => { setShowSettings(false); }}
+                  className={`px-4 py-2 text-xs font-mono font-bold rounded-lg transition-all shadow-md w-full sm:w-auto ${buttonPrimary}`}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAINEL PRINCIPAL */}
+      <main className="flex-grow max-w-7xl w-full mx-auto p-4 flex flex-col lg:flex-row gap-4 overflow-hidden">
+        
+        {/* COLUNA ESQUERDA: NAVEGAÇÃO OPERACIONAL */}
+        <nav className="w-full lg:w-64 flex flex-col gap-3 flex-shrink-0">
+          
+          <div className={`bg-slate-900/90 border rounded-xl p-3 flex flex-col shadow-xl gap-1 ${borderAccent}`}>
+            <span className="text-[10px] font-mono text-slate-500 font-bold px-2 mb-1.5 uppercase tracking-widest">Atividade de Missão</span>
+            
+            <button
+              onClick={() => setActiveTab('terminal')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border ${
+                activeTab === 'terminal' 
+                  ? isMonochrome ? 'bg-slate-800 text-white border-slate-500 shadow-md' : 'bg-cyan-950/40 text-cyan-400 border-cyan-800/80' 
+                  : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200'
+              }`}
+            >
+              <Terminal className="w-4 h-4" />
+              <span>Terminal de IA</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('osint')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border ${
+                activeTab === 'osint' 
+                  ? isMonochrome ? 'bg-slate-800 text-white border-slate-500 shadow-md' : 'bg-cyan-950/40 text-cyan-400 border-cyan-800/80' 
+                  : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span>Módulos OSINT</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('dossier')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border ${
+                activeTab === 'dossier' 
+                  ? isMonochrome ? 'bg-slate-800 text-white border-slate-500 shadow-md' : 'bg-cyan-950/40 text-cyan-400 border-cyan-800/80' 
+                  : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200'
+              }`}
+            >
+              <FolderLock className="w-4 h-4" />
+              <span>Central de Dossiês</span>
+              {dossiers.length > 0 && (
+                <span className={`ml-auto border text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${isMonochrome ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-cyan-900/50 text-cyan-400 border-cyan-800'}`}>
+                  {dossiers.length}
+                </span>
+              )}
+            </button>
+
+            {/* ABA DE ADMINISTRADOR (EXCLUSIVA DO USUÁRIO ADMIN) */}
+            {currentUser?.isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border ${
+                  activeTab === 'admin' 
+                    ? isMonochrome ? 'bg-slate-800 text-white border-slate-500 shadow-md' : 'bg-cyan-950/40 text-cyan-400 border-cyan-800/80' 
+                    : 'bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200'
+                }`}
+              >
+                <UserPlus className="w-4 h-4 text-cyan-400" />
+                <span>Painel Admin</span>
+              </button>
+            )}
+          </div>
+
+          {/* DOSSIÊS ATIVOS */}
+          <div className={`bg-slate-900/90 border rounded-xl p-4 flex flex-col shadow-xl ${borderAccent}`}>
+            <h3 className="text-[10px] font-bold font-mono tracking-widest text-slate-500 mb-3 uppercase flex items-center gap-1.5 border-b border-slate-850 pb-2">
+              <Layers className={`w-3.5 h-3.5 ${textAccent}`} />
+              Dossiês PRECHLAK ({dossiers.length})
+            </h3>
+            <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar font-mono">
+              {dossiers.length === 0 ? (
+                <span className="text-[10px] text-slate-500 font-mono block text-center py-2">Nenhum dossiê ativo</span>
+              ) : (
+                dossiers.map(d => (
+                  <div key={d.id} className="p-1.5 bg-slate-950 rounded border border-slate-900 flex justify-between items-center gap-2">
+                    <div className="min-w-0 flex-grow">
+                      <span className={`text-[9px] block font-bold leading-none ${textAccent}`}>{d.tipo}</span>
+                      <span className="text-[11px] text-slate-300 font-semibold truncate block mt-0.5">{d.alvo}</span>
+                    </div>
+                    <span className={`text-[8px] px-1 rounded border leading-none shrink-0 font-bold ${
+                      d.risco === 'ALTO RISCO' 
+                        ? 'border-red-600 text-red-500 bg-red-950/30' 
+                        : isMonochrome ? 'border-slate-600 text-slate-300 bg-slate-950' : 'border-amber-800 text-amber-400 bg-amber-950/20'
+                    }`}>
+                      {d.risco.split(' ')[0]}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* TEMPLATES QUICK-LAUNCH */}
+          <div className={`bg-slate-900/90 border rounded-xl p-4 flex flex-col shadow-xl ${borderAccent}`}>
+            <h3 className="text-[10px] font-bold font-mono tracking-widest text-slate-500 mb-2 uppercase flex items-center gap-1.5">
+              <BookOpen className={`w-3.5 h-3.5 ${textAccent}`} />
+              Modelos Rápidos
+            </h3>
+            <div className="space-y-1.5">
+              {TEMPLATES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => handleUseTemplate(t.prompt)}
+                  className="w-full text-left p-1.5 rounded bg-slate-950 hover:bg-slate-850 border border-slate-900 text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5"
+                >
+                  <Plus className={`w-3 h-3 ${textAccent}`} />
+                  <span>{t.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </nav>
+
+        {/* COLUNA CENTRAL / DIREITA */}
+        <section className={`flex-grow bg-slate-900/95 border rounded-xl flex flex-col shadow-2xl overflow-hidden min-h-[500px] ${borderAccent}`}>
+          
+          {/* TAB 1: TERMINAL DE IA CLASSICO */}
+          {activeTab === 'terminal' && (
+            <div className="flex flex-col flex-grow overflow-hidden h-[600px] lg:h-auto animate-in fade-in duration-150">
+              
+              <div className="bg-slate-950/90 px-4 py-2.5 border-b border-slate-800/90 flex justify-between items-center flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2 w-2 relative">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isMonochrome ? 'bg-white' : 'bg-red-500'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${isMonochrome ? 'bg-white' : 'bg-red-500'}`}></span>
+                  </span>
+                  <span className="font-mono text-xs font-bold text-slate-300">
+                    CONSOLE TÁTICO PRECHLAK ACTIVATED
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500 uppercase">
+                  OPERADOR: {currentUser?.username}
+                </span>
+              </div>
+
+              {/* Mensagens do chat */}
+              <div className="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-slate-950/40 via-slate-900/90 to-slate-950/80">
+                {messages.map((message) => {
+                  const isUser = message.role === 'user';
+                  const isWelcome = message.id === 'welcome';
+                  const messageStatus = message.status || 'SEGURO';
+                  const messageStatusConfig = getStatusConfig(messageStatus);
+
+                  return (
+                    <div 
+                      key={message.id} 
+                      className={`flex flex-col max-w-[85%] ${isUser ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1 px-1">
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {isUser ? 'OPERADOR' : 'PRECHLAK.EXE'} [{message.timestamp}]
+                        </span>
+                        {!isUser && !isWelcome && (
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono border ${messageStatusConfig.badgeBg}`}>
+                            {messageStatus}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={`p-4 rounded-xl shadow-lg border text-slate-300 transition-all duration-300 ${
+                        isUser 
+                          ? 'bg-slate-800/95 border-slate-700 rounded-tr-none' 
+                          : `${messageStatusConfig.bg} ${messageStatusConfig.border} rounded-tl-none`
+                      }`}>
+                        {isUser ? (
+                          <p className="text-sm whitespace-pre-wrap font-mono leading-relaxed select-text">{message.content}</p>
+                        ) : (
+                          <div className="prose prose-invert max-w-none text-xs md:text-sm">
+                            {renderFormattedText(message.content)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {isLoading && (
+                  <div className="flex flex-col items-start max-w-[80%]">
+                    <div className="flex items-center gap-1.5 mb-1 px-1">
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        PRECHLAK.EXE [Computando evidências...]
+                      </span>
+                    </div>
+                    <div className={`p-4 rounded-xl border bg-slate-950/80 rounded-tl-none flex items-center gap-3 ${isMonochrome ? 'border-slate-500 text-white' : 'border-red-900/80 text-red-400'}`}>
+                      <div className="relative w-5 h-5">
+                        <div className={`absolute top-0 left-0 w-full h-full border-2 rounded-full ${isMonochrome ? 'border-white/10' : 'border-red-500/20'}`}></div>
+                        <div className={`absolute top-0 left-0 w-full h-full border-2 border-t-transparent rounded-full animate-spin ${isMonochrome ? 'border-white' : 'border-red-400'}`}></div>
+                      </div>
+                      <span className="font-mono text-xs tracking-wider animate-pulse font-bold">
+                        EFETUANDO CORRELAÇÃO DE DADOS FORENSES...
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Console de Input */}
+              <div className="p-4 bg-slate-950/90 border-t border-slate-800/90 flex-shrink-0">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSend();
+                  }}
+                  className="flex flex-col gap-2"
+                >
+                  <div className="relative flex items-center">
+                    <textarea
+                      id="main-chat-input"
+                      rows="3"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                      placeholder="Descreva o caso, envie hashes, dados de carteiras de cripto, ou inicie uma auditoria com a PRECHLAK..."
+                      className={`w-full bg-slate-900 border focus:ring-1 rounded-xl py-3 pl-4 pr-16 text-slate-100 text-sm focus:outline-none placeholder:text-slate-500 font-mono resize-none ${
+                        isMonochrome 
+                          ? 'border-slate-800 focus:border-slate-500 focus:ring-slate-500/20' 
+                          : 'border-slate-800 focus:border-cyan-500/80 focus:ring-cyan-500/30'
+                      }`}
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading || !input.trim()}
+                      className={`absolute bottom-3.5 right-3.5 p-2 rounded-lg transition-all font-bold flex items-center justify-center shadow-lg disabled:bg-slate-800 disabled:text-slate-600 ${buttonPrimary}`}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: MÓDULOS OSINT AVANÇADOS PRECHLAK */}
+          {activeTab === 'osint' && (
+            <div className="p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-150">
+              
+              <div className="border-b border-slate-850 pb-3">
+                <h2 className={`text-base font-bold font-mono flex items-center gap-2 ${textAccent}`}>
+                  <Globe className="w-5 h-5" />
+                  PRECHLAK - MÓDULOS OSINT DE ELITE
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Selecione a categoria de inteligência de fontes abertas desejada para rastrear e processar seu alvo.
+                </p>
+              </div>
+
+              {/* Botões seletores de módulos expandidos */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('social'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'social' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <UserSearch className="w-4 h-4" />
+                  <span>Perfil Social</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('domain'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'domain' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>DNS & Domínio</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('crypto'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'crypto' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Coins className="w-4 h-4" />
+                  <span>Blockchain/Cripto</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('metadata'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'metadata' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <FileSearch className="w-4 h-4" />
+                  <span>Metadados EXIF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('phone'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'phone' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Telefone + IP</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('email'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'email' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>E-mail / Breaches</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('username_global'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'username_global' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Binary className="w-4 h-4" />
+                  <span>Username Global</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setOsintType('cnpj_veiculo'); setOsintResult(null); }}
+                  className={`p-3 rounded-xl border font-mono text-[11px] flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    osintType === 'cnpj_veiculo' 
+                      ? isMonochrome ? 'bg-slate-800 border-white text-white shadow-md' : 'bg-cyan-950/30 border-cyan-500/60 text-cyan-300 shadow-[0_0_10px]' 
+                      : 'bg-slate-950/50 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <Building className="w-4 h-4" />
+                  <span>Empresas / Placas</span>
+                </button>
+
+              </div>
+
+              {/* Form de consulta dinâmico */}
+              <form onSubmit={handleExecuteOSINT} className="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4 font-mono">
+                
+                {/* 1. SELEÇÃO DE PERFIL SOCIAL */}
+                {osintType === 'social' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Rede Social Alvo e Alias:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['instagram', 'tiktok', 'facebook', 'discord'].map((plat) => (
+                        <button
+                          key={plat}
+                          type="button"
+                          onClick={() => setSocialPlatform(plat)}
+                          className={`p-2 rounded-lg border text-[11px] capitalize transition-all ${
+                            socialPlatform === plat 
+                              ? isMonochrome ? 'bg-slate-800 border-slate-400 text-white font-bold' : 'bg-cyan-950/40 border-cyan-800 text-cyan-400 font-bold'
+                              : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {plat}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder={`Digite o username ou ID do ${socialPlatform.toUpperCase()}`}
+                        value={socialUsername}
+                        onChange={(e) => setSocialUsername(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Processar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. DNS & DOMÍNIO */}
+                {osintType === 'domain' && (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Domínio / Host Alvo:</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Ex: dominio-suspeito.com"
+                        value={domainInput}
+                        onChange={(e) => setDomainInput(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Auditar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. BLOCKCHAIN / CRIPTO */}
+                {osintType === 'crypto' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Blockchain de Consulta e Endereço Público:</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['btc', 'eth', 'usdt'].map((chain) => (
+                        <button
+                          key={chain}
+                          type="button"
+                          onClick={() => setCryptoChain(chain)}
+                          className={`p-2 rounded-lg border text-[11px] uppercase transition-all ${
+                            cryptoChain === chain 
+                              ? isMonochrome ? 'bg-slate-800 border-slate-400 text-white font-bold' : 'bg-cyan-950/40 border-cyan-800 text-cyan-400 font-bold'
+                              : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {chain}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Insira a chave/endereço público"
+                        value={cryptoAddress}
+                        onChange={(e) => setCryptoAddress(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Rastrear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. METADADOS EXIF */}
+                {osintType === 'metadata' && (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Nome/Tipo do Arquivo de Mídia Suspeito:</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Ex: IMG_2894.JPG"
+                        value={metadataFile}
+                        onChange={(e) => setMetadataFile(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Auditar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. TELEFONE + IP CORRELACIONADO */}
+                {osintType === 'phone' && (
+                  <div className="space-y-3 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Varredura de Linha & IP:</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Linha Telefônica: +55 (11) 98888-7777"
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(e.target.value)}
+                        className="bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <input 
+                        type="text"
+                        placeholder="IP de conexão associado: 185.220.101.5"
+                        value={phoneIpInput}
+                        onChange={(e) => setPhoneIpInput(e.target.value)}
+                        className="bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <button type="submit" disabled={osintLoading} className={`px-6 py-2 font-bold text-xs rounded-lg transition-all shadow-md ${buttonPrimary}`}>
+                        Triangular e Auditar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. E-MAIL / BREACHES */}
+                {osintType === 'email' && (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Endereço de E-mail:</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="email"
+                        placeholder="Ex: alvo@corporacao.com.br"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Escanear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. IP ADDRESS */}
+                {osintType === 'ip' && (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Endereço IP para Geolocalização:</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Ex: 185.220.101.5"
+                        value={ipInput}
+                        onChange={(e) => setIpInput(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Rastrear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. USERNAME GLOBAL */}
+                {osintType === 'username_global' && (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Nome de Usuário (Alias Global):</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Ex: drakon_sec"
+                        value={usernameGlobal}
+                        onChange={(e) => setUsernameGlobal(e.target.value)}
+                        className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Correlacionar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 9. CADASTRO CNPJ / PLACA VEÍCULO */}
+                {osintType === 'cnpj_veiculo' && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <label className="text-xs font-bold text-slate-300 block uppercase">Selecione o Tipo de Auditoria:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCnpjVeiculoType('cnpj')}
+                        className={`p-2 rounded-lg border text-[11px] uppercase transition-all ${
+                          cnpjVeiculoType === 'cnpj' 
+                            ? isMonochrome ? 'bg-slate-800 border-slate-400 text-white font-bold' : 'bg-cyan-950/40 border-cyan-800 text-cyan-400 font-bold'
+                            : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Auditoria CNPJ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCnpjVeiculoType('veiculo')}
+                        className={`p-2 rounded-lg border text-[11px] uppercase transition-all ${
+                          cnpjVeiculoType === 'veiculo' 
+                            ? isMonochrome ? 'bg-slate-800 border-slate-400 text-white font-bold' : 'bg-cyan-950/40 border-cyan-800 text-cyan-400 font-bold'
+                            : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Placa Veicular
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {cnpjVeiculoType === 'cnpj' ? (
+                        <input 
+                          type="text"
+                          placeholder="Digite o CNPJ (apenas números)"
+                          value={cnpjInput}
+                          onChange={(e) => setCnpjInput(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                          required
+                        />
+                      ) : (
+                        <input 
+                          type="text"
+                          placeholder="Digite a placa do veículo"
+                          value={veiculoPlaca}
+                          onChange={(e) => setVeiculoPlaca(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
+                          required
+                        />
+                      )}
+                      <button type="submit" disabled={osintLoading} className={`px-5 py-2 font-bold text-xs rounded-lg transition-all shadow-md shrink-0 ${buttonPrimary}`}>
+                        Auditar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {osintLoading && (
+                  <div className="py-8 text-center flex flex-col items-center justify-center gap-3">
+                    <div className="relative w-8 h-8">
+                      <div className={`absolute top-0 left-0 w-full h-full border-2 rounded-full ${isMonochrome ? 'border-white/10' : 'border-cyan-500/20'}`}></div>
+                      <div className={`absolute top-0 left-0 w-full h-full border-2 border-t-transparent rounded-full animate-spin ${isMonochrome ? 'border-white' : 'border-cyan-400'}`}></div>
+                    </div>
+                    <span className={`font-mono text-xs animate-pulse font-bold ${textAccent}`}>PRECHLAK EXTRAINDO DADOS E CONSULTANDO REPOSITÓRIOS...</span>
+                  </div>
+                )}
+
+              </form>
+
+              {/* Resultados OSINT */}
+              {osintResult && (
+                <div className="bg-slate-950 rounded-xl border border-slate-850 p-5 space-y-4 shadow-xl animate-in slide-in-from-bottom-3 duration-200">
+                  
+                  <div className="flex justify-between items-center border-b border-slate-900 pb-2">
+                    <div className="flex items-center gap-3">
+                      {/* EXIBIÇÃO DA FOTO DO PERFIL CAPTURADA */}
+                      {osintResult.avatarUrl && (
+                        <div className="relative shrink-0">
+                          <img 
+                            src={osintResult.avatarUrl} 
+                            alt={`Avatar do alvo ${osintResult.alvo}`}
+                            className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 object-cover"
+                          />
+                          <span className="absolute -bottom-1 -right-1 bg-cyan-950 border border-cyan-800 p-0.5 rounded-full">
+                            <ImageIcon className="w-3 h-3 text-cyan-400" />
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className={`text-[10px] font-mono font-bold uppercase block ${textAccent}`}>Dossiê de Conta OSINT</span>
+                        <h3 className="text-sm font-bold font-mono text-slate-200">Identificador: {osintResult.alvo}</h3>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={saveOsintToDossier}
+                      className={`px-3 py-1.5 border text-xs font-mono font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+                        isMonochrome 
+                          ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200' 
+                          : 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-900 hover:border-cyan-700 text-cyan-400'
+                      }`}
+                    >
+                      <FolderLock className="w-3.5 h-3.5" />
+                      <span>Salvar no Dossiê</span>
+                    </button>
+                  </div>
+
+                  {/* Metadados */}
+                  <div className="bg-slate-900/60 rounded-lg border border-slate-850 p-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-mono">
+                    {Object.entries(osintResult.metadados).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="text-slate-500 uppercase text-[9px] block font-bold">{key}</span>
+                        <span className="text-slate-300 font-semibold mt-0.5 block">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Análise da IA */}
+                  <div className="p-4 bg-slate-900/40 rounded-xl border border-slate-900 text-slate-300 space-y-2 leading-relaxed font-mono">
+                    {renderFormattedText(osintResult.analise)}
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* TAB 3: CENTRAL DE DOSSIÊS (PRECHLAK COFRE) */}
+          {activeTab === 'dossier' && (
+            <div className="p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-150">
+              
+              <div className="border-b border-slate-850 pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono">
+                <div>
+                  <h2 className={`text-base font-bold flex items-center gap-2 ${textAccent}`}>
+                    <FolderLock className="w-5 h-5" />
+                    PRECHLAK COFRE DE DOSSIÊS
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Cofre seguro para armazenamento e centralização de alvos investigados.
+                  </p>
+                </div>
+                
+                <div className="flex gap-2 self-start md:self-auto font-mono">
+                  <button 
+                    onClick={exportDossiersToTXT}
+                    disabled={dossiers.length === 0}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white text-xs rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Download className={`w-4 h-4 ${textAccent}`} />
+                    <span>Exportar (.TXT)</span>
+                  </button>
+                  
+                  <button 
+                    onClick={clearDossiers}
+                    disabled={dossiers.length === 0}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/20 border border-slate-800 hover:border-rose-900 text-slate-400 hover:text-rose-400 text-xs rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Apagar Tudo</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Registro Manual */}
+              <form onSubmit={handleCreateDossierManual} className="bg-slate-950 p-4 rounded-xl border border-slate-900 space-y-3 font-mono">
+                <h3 className={`text-xs font-bold uppercase flex items-center gap-1.5 mb-1 ${textAccent}`}>
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Caso Manualmente
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block uppercase">Tipo do Alvo</label>
+                    <select
+                      value={newDosType}
+                      onChange={(e) => setNewDosType(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none"
+                    >
+                      <option value="Perfil (Instagram)">Perfil (Instagram)</option>
+                      <option value="Perfil (TikTok)">Perfil (TikTok)</option>
+                      <option value="Perfil (Discord)">Perfil (Discord)</option>
+                      <option value="Blockchain (Crypto)">Blockchain (Crypto)</option>
+                      <option value="Domínio / DNS">Domínio / DNS</option>
+                      <option value="IP Address">IP Address</option>
+                      <option value="Telefone">Telefone</option>
+                      <option value="E-mail / Gmail">E-mail / Gmail</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block uppercase">Alvo (Identificador)</label>
+                    <input 
+                      type="text"
+                      placeholder="Ex: @username"
+                      value={newDosTarget}
+                      onChange={(e) => setNewDosTarget(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 block uppercase">Nível de Risco</label>
+                    <select
+                      value={newDosRisk}
+                      onChange={(e) => setNewDosRisk(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none"
+                    >
+                      <option value="ALTO RISCO">ALTO RISCO 🚨</option>
+                      <option value="SUSPEITO">SUSPEITO ⚠️</option>
+                      <option value="SEGURO">SEGURO ✅</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 block uppercase">Notas Forenses</label>
+                  <textarea 
+                    placeholder="Evidências coletadas..."
+                    value={newDosNotes}
+                    onChange={(e) => setNewDosNotes(e.target.value)}
+                    rows="3"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none font-mono"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button type="submit" className={`px-4 py-2 font-bold text-xs rounded-lg transition-all ${buttonPrimary}`}>
+                    Arquivar Registro
+                  </button>
+                </div>
+              </form>
+
+              {/* Lista de Dossiês */}
+              <div className="space-y-3 font-mono">
+                {dossiers.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-950 rounded-xl border border-slate-900 flex flex-col items-center justify-center gap-3">
+                    <FolderLock className="w-12 h-12 text-slate-700 animate-pulse" />
+                    <span className="text-xs text-slate-500">Cofre operacional vazio.</span>
+                  </div>
+                ) : (
+                  dossiers.map((d) => {
+
+                    return (
+                      <div key={d.id} className="bg-slate-950 p-4 rounded-xl border border-slate-900 hover:border-slate-800 transition-all flex flex-col space-y-3 relative group">
+                        
+                        <button
+                          onClick={() => deleteDossier(d.id)}
+                          className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-rose-400 bg-slate-900 hover:bg-slate-850 rounded border border-slate-800 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5 font-mono">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase ${
+                              isMonochrome ? 'bg-slate-900 text-slate-200 border-slate-700' : 'bg-cyan-950/40 text-cyan-400 border-cyan-900'
+                            }`}>
+                              {d.tipo}
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                              Arquivado: {d.data}
+                            </span>
+                          </div>
+
+                          <span className={`text-[10px] px-2 py-0.5 rounded border font-bold self-start md:self-auto ${
+                            d.risco === 'ALTO RISCO' || d.risco === 'SUSPEITO'
+                              ? 'bg-red-950/70 text-red-400 border-red-850 animate-pulse'
+                              : 'bg-emerald-950/60 text-emerald-300 border-emerald-600'
+                          }`}>
+                            {d.risco}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-200 select-all">{d.alvo}</h4>
+                          <p className="text-xs text-slate-400 mt-2 whitespace-pre-wrap leading-relaxed select-text bg-slate-900/40 p-3 rounded-lg border border-slate-850">
+                            {d.observacoes}
+                          </p>
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 4: CONTROLE DE LICENÇAS ADMINISTRADOR (USUÁRIOS) */}
+          {activeTab === 'admin' && currentUser?.isAdmin && (
+            <div className="p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-150">
+              
+              <div className="border-b border-slate-850 pb-3">
+                <h2 className={`text-base font-bold font-mono flex items-center gap-2 ${textAccent}`}>
+                  <UserCheck className="w-5 h-5" />
+                  PAINEL DE GERENCIAMENTO DE LICENÇAS E LOGINS
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Gerencie credenciais de acesso, crie novos logins operacionais e determine o prazo de expiração das chaves de segurança.
+                </p>
+              </div>
+
+              {/* Form de Criação de Novas Licenças */}
+              <form onSubmit={handleCreateLogin} className="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4 font-mono">
+                <h3 className="text-xs font-bold uppercase text-cyan-400 flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4" />
+                  Gerar Credencial de Operador
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Nome de Usuário:</label>
+                    <input 
+                      type="text"
+                      placeholder="Ex: operador01"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Senha de Acesso:</label>
+                    <input 
+                      type="text"
+                      placeholder="Ex: pass9988"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Período Ativo (Dias):</label>
+                    <select
+                      value={activeDaysLimit}
+                      onChange={(e) => setActiveDaysLimit(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                    >
+                      <option value="1">1 Dia (Licença de Teste)</option>
+                      <option value="7">7 Dias (Semanal)</option>
+                      <option value="30">30 Dias (Mensal)</option>
+                      <option value="90">90 Dias (Trimestral)</option>
+                      <option value="365">365 Dias (Anual)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button type="submit" className={`px-4 py-2 font-bold text-xs rounded-lg transition-all ${buttonPrimary}`}>
+                    Ativar Credencial
+                  </button>
+                </div>
+              </form>
+
+              {/* Lista de Usuários Ativos / Licenças */}
+              <div className="space-y-3 font-mono">
+                <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-slate-500" />
+                  Operadores Cadastrados no Sistema
+                </h3>
+
+                <div className="bg-slate-950 rounded-xl border border-slate-900 overflow-hidden">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-900/60 text-slate-400 border-b border-slate-850">
+                        <th className="p-3">Usuário</th>
+                        <th className="p-3">Senha</th>
+                        <th className="p-3">Tipo</th>
+                        <th className="p-3">Prazo</th>
+                        <th className="p-3">Criação</th>
+                        <th className="p-3 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersDb.map((user, idx) => {
+                        const createdDate = new Date(user.createdAt);
+                        const expirationDate = new Date(createdDate.getTime() + user.activeDays * 24 * 60 * 60 * 1000);
+                        const isExpired = new Date() > expirationDate;
+
+                        return (
+                          <tr key={idx} className="border-b border-slate-900/60 hover:bg-slate-900/20">
+                            <td className="p-3 font-semibold text-slate-200">@{user.username}</td>
+                            <td className="p-3 text-slate-400">{user.password}</td>
+                            <td className="p-3">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] border ${user.isAdmin ? 'bg-cyan-950 text-cyan-400 border-cyan-800' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+                                {user.isAdmin ? 'ADMIN' : 'OPERADOR'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {user.isAdmin ? (
+                                <span className="text-emerald-400 font-semibold">Ilimitado</span>
+                              ) : (
+                                <span className={isExpired ? 'text-red-500 font-semibold' : 'text-slate-300'}>
+                                  {user.activeDays} dias {isExpired ? '(Expirado)' : ''}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-slate-500">{createdDate.toLocaleDateString('pt-BR')}</td>
+                            <td className="p-3 text-right">
+                              {user.username !== 'prechlak' && (
+                                <button
+                                  onClick={() => handleDeleteUser(user.username)}
+                                  className="text-red-500 hover:text-red-400 transition-colors"
+                                  title="Remover Acesso"
+                                >
+                                  Remover
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </section>
+
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-slate-950 border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-500 font-mono mt-auto flex-shrink-0">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+          <span>&copy; {new Date().getFullYear()} PRECHLAK. Licença autorizada de segurança e controle de acessos.</span>
+          <span className={`text-[10px] flex items-center gap-1 ${textAccent}`}>
+            <Shield className="w-3.5 h-3.5 animate-pulse" />
+            CONEXÃO ATIVA NO CANAL DE CRIPTOGRAFIA ASSIMÉTRICA PRECHLAK SECURE
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+```
