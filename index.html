@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRECHLAK - Tactical OSINT Suite</title>
+    <!-- Tailwind CSS para Estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons para os ícones táticos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar para visual hacker/cyberpunk */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #020617;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+        /* Efeito de brilho vermelho para alertas de Alto Risco */
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-cyan-500/30">
+
+    <!-- TELA DE LOGIN (BLOQUEIO INICIAL) -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl"></div>
+
+            <div class="flex flex-col items-center gap-3 mb-6">
+                <div class="p-3 bg-gradient-to-tr from-cyan-600 to-blue-700 rounded-xl border border-cyan-500/30">
+                    <i data-lucide="shield" class="w-8 h-8 text-white"></i>
+                </div>
+                <div class="text-center">
+                    <h2 class="text-xl font-black tracking-widest uppercase font-mono text-slate-100">
+                        PRECHLAK<span class="text-cyan-400">OSINT</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 font-mono tracking-tight mt-1">SISTEMA OPERACIONAL DE INTELIGÊNCIA INTEGRADO</p>
+                </div>
+            </div>
+
+            <form id="login-form" class="space-y-4 font-mono">
+                <div id="login-error" class="hidden p-3 bg-red-950/40 border border-red-900/60 rounded-lg text-red-400 text-xs flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                    <span id="login-error-text">Acesso Negado.</span>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Usuário:</label>
+                    <input type="text" id="login-username" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none" placeholder="Insira seu usuário" required>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Senha de Segurança:</label>
+                    <input type="password" id="login-password" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span>Autenticar Operador</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- BANNER DE NOTIFICAÇÃO DO SISTEMA -->
+    <div id="system-alert" class="hidden bg-cyan-950 border-b border-cyan-800 text-cyan-300 text-xs px-4 py-2 text-center font-mono flex items-center justify-center gap-2 sticky top-0 z-50">
+        <i data-lucide="activity" class="w-4 h-4 animate-spin text-cyan-400"></i>
+        <span id="system-alert-text">Sincronizando sistemas táticos...</span>
+    </div>
+
+    <!-- HEADER OPERACIONAL -->
+    <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <div class="flex items-center gap-3">
+                <div id="header-logo-bg" class="p-2 bg-gradient-to-tr from-cyan-600 to-blue-700 rounded-lg border border-cyan-500/30">
+                    <i data-lucide="shield" class="w-6 h-6 text-white animate-pulse"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-black tracking-widest text-slate-100 uppercase font-mono">
+                            PRECHLAK<span id="header-span" class="text-cyan-400">OSINT</span>
+                        </h1>
+                        <span id="version-badge" class="text-[10px] bg-cyan-950 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-800 font-mono font-bold">v8.0 ACTIVE</span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-mono tracking-tight flex items-center gap-1.5">
+                        <span id="ping-bullet" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block"></span>
+                        SISTEMA OPERACIONAL DE INTELIGÊNCIA RESILIENTE
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                <button id="theme-toggle" class="px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400 hover:text-white text-xs font-mono font-bold transition-all flex items-center gap-1.5">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    <span id="theme-text">TEMA: CYBER</span>
+                </button>
+
+                <div id="status-badge" class="px-3 py-1.5 rounded border border-emerald-800 bg-emerald-950/20 text-emerald-300 flex items-center gap-2 text-xs font-mono uppercase transition-all duration-300">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 animate-bounce"></i>
+                    <span>SISTEMA: <strong id="status-text" class="font-bold">SEGURO</strong></span>
+                </div>
+
+                <button id="logout-btn" class="p-2 bg-red-950/20 hover:bg-red-950/40 border border-red-900 text-red-400 hover:text-red-300 rounded-lg text-xs font-mono transition-colors flex items-center gap-1">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Sair</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- PAINEL PRINCIPAL -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 flex flex-col lg:flex-row gap-4 overflow-hidden">
+        
+        <!-- NAVEGAÇÃO LATERAL -->
+        <nav class="w-full lg:w-64 flex flex-col gap-3 flex-shrink-0">
+            <div id="nav-card" class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col shadow-xl gap-1">
+                <span class="text-[10px] font-mono text-slate-500 font-bold px-2 mb-1.5 uppercase tracking-widest">Atividade de Missão</span>
+                
+                <button onclick="switchTab('terminal')" id="btn-tab-terminal" class="tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-cyan-950/40 text-cyan-400 border-cyan-800/80 shadow-[0_0_8px_rgba(34,211,238,0.15)]">
+                    <i data-lucide="terminal" class="w-4 h-4"></i>
+                    <span>Terminal de IA</span>
+                </button>
+
+                <button onclick="switchTab('osint')" id="btn-tab-osint" class="tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    <span>Módulos OSINT</span>
+                </button>
+
+                <button onclick="switchTab('dossier')" id="btn-tab-dossier" class="tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200">
+                    <i data-lucide="folder-lock" class="w-4 h-4"></i>
+                    <span>Central de Dossiês</span>
+                </button>
+
+                <!-- ADMIN TAB -->
+                <button onclick="switchTab('admin')" id="btn-tab-admin" class="tab-btn hidden w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200">
+                    <i data-lucide="user-plus" class="w-4 h-4 text-cyan-400"></i>
+                    <span>Painel Admin</span>
+                </button>
+            </div>
+
+            <!-- CARD EXIBIÇÃO DE PRAZO DA LICENÇA ATIVA -->
+            <div id="license-expiry-card" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col shadow-xl font-mono text-xs">
+                <h3 class="text-[10px] font-bold tracking-widest text-slate-500 mb-3 uppercase flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    Vigência da Licença
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Operador:</span>
+                        <span id="expiry-user" class="text-cyan-400 font-bold">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Dias Restantes:</span>
+                        <span id="expiry-days" class="text-slate-200 font-bold">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Data Limite:</span>
+                        <span id="expiry-date" class="text-slate-200 font-bold">-</span>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-1.5 mt-2 overflow-hidden">
+                        <div id="expiry-bar" class="bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOSSIÊS ATIVOS RÁPIDOS -->
+            <div id="quick-dossier-card" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col shadow-xl">
+                <h3 class="text-[10px] font-bold font-mono tracking-widest text-slate-500 mb-3 uppercase flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    Dossiês Ativos
+                </h3>
+                <div id="quick-dossier-list" class="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar font-mono text-xs">
+                    <!-- Gerado dinamicamente -->
+                </div>
+            </div>
+        </nav>
+
+        <!-- CONTAINER DA ÁREA DE CONTEÚDO -->
+        <section id="content-area" class="flex-grow bg-slate-900/95 border border-slate-800 rounded-xl flex flex-col shadow-2xl overflow-hidden min-h-[500px]">
+            
+            <!-- TAB 1: TERMINAL DE IA -->
+            <div id="tab-terminal" class="tab-content flex flex-col flex-grow overflow-hidden h-[600px] lg:h-auto">
+                <div class="bg-slate-950/90 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-2 w-2 relative">
+                            <span id="live-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                            <span id="live-bullet" class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        <span class="font-mono text-xs font-bold text-slate-300">CONSOLE TÁTICO PRECHLAK</span>
+                    </div>
+                    <span id="operator-badge" class="text-[10px] font-mono text-slate-500 uppercase font-bold">CARREGANDO OPERADOR...</span>
+                </div>
+
+                <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar bg-gradient-to-br from-slate-950/40 to-slate-950/80 font-mono">
+                    <!-- Mensagens do chat -->
+                </div>
+
+                <div class="p-4 bg-slate-950/90 border-t border-slate-800 flex-shrink-0">
+                    <form id="chat-form" class="flex flex-col gap-2">
+                        <div class="relative flex items-center">
+                            <textarea id="chat-input" rows="2" placeholder="Descreva seu caso de investigação ou cole links/scripts suspeitos para análise tática..." class="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500/80 focus:ring-cyan-500/30 rounded-xl py-3 pl-4 pr-16 text-slate-100 text-sm focus:outline-none placeholder:text-slate-500 font-mono resize-none"></textarea>
+                            <button type="submit" class="absolute bottom-3 right-3 p-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 2: MÓDULOS OSINT -->
+            <div id="tab-osint" class="tab-content hidden p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-200">
+                <div class="border-b border-slate-800 pb-3">
+                    <h2 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+                        <i data-lucide="globe" class="w-5 h-5"></i> PRECHLAK - MÓDULOS OSINT DE ELITE
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <button onclick="setOsintType('social')" id="osint-btn-social" class="osint-selector p-3 rounded-xl border border-cyan-500/60 bg-cyan-950/30 text-cyan-300 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all">
+                        <i data-lucide="user-search" class="w-4 h-4"></i><span>Perfil Social</span>
+                    </button>
+                    <button onclick="setOsintType('phone')" id="osint-btn-phone" class="osint-selector p-3 rounded-xl border border-slate-900 bg-slate-950/50 text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all">
+                        <i data-lucide="phone" class="w-4 h-4"></i><span>Telefone + IP</span>
+                    </button>
+                    <button onclick="setOsintType('crypto')" id="osint-btn-crypto" class="osint-selector p-3 rounded-xl border border-slate-900 bg-slate-950/50 text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all">
+                        <i data-lucide="coins" class="w-4 h-4"></i><span>Blockchain/Cripto</span>
+                    </button>
+                    <button onclick="setOsintType('cnpj_veiculo')" id="osint-btn-cnpj" class="osint-selector p-3 rounded-xl border border-slate-900 bg-slate-950/50 text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all">
+                        <i data-lucide="building" class="w-4 h-4"></i><span>Empresas / Placas</span>
+                    </button>
+                </div>
+
+                <form id="osint-form" class="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4 font-mono">
+                    
+                    <div id="osint-group-social" class="osint-group space-y-4">
+                        <label class="text-xs font-bold text-slate-300 block uppercase">Plataforma e Nome do Perfil:</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button type="button" onclick="setSocialPlat('instagram')" id="plat-instagram" class="plat-btn p-2 rounded-lg border border-cyan-800 bg-cyan-950/40 text-cyan-400 text-xs font-bold capitalize">Instagram</button>
+                            <button type="button" onclick="setSocialPlat('tiktok')" id="plat-tiktok" class="plat-btn p-2 rounded-lg border border-slate-900 bg-slate-900/40 text-slate-400 text-xs capitalize">TikTok</button>
+                            <button type="button" onclick="setSocialPlat('facebook')" id="plat-facebook" class="plat-btn p-2 rounded-lg border border-slate-900 bg-slate-900/40 text-slate-400 text-xs capitalize">Facebook</button>
+                            <button type="button" onclick="setSocialPlat('discord')" id="plat-discord" class="plat-btn p-2 rounded-lg border border-slate-900 bg-slate-900/40 text-slate-400 text-xs capitalize">Discord</button>
+                        </div>
+                        <input type="text" id="osint-username" placeholder="Digite o username do perfil" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+
+                    <div id="osint-group-phone" class="osint-group hidden space-y-4">
+                        <label class="text-xs font-bold text-slate-300 block uppercase">Triangulação de Linha e IP:</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input type="text" id="osint-phone-input" placeholder="Telefone: +55 (11) 98888-7777" class="bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                          <input type="text" id="osint-phone-ip" placeholder="IP associado (Opcional): 185.220.101.5" class="bg-slate-900 border border-slate-850 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div id="osint-group-crypto" class="osint-group hidden space-y-4">
+                        <label class="text-xs font-bold text-slate-300 block uppercase">Carteira e Tipo de Rede:</label>
+                        <select id="osint-crypto-chain" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                            <option value="btc">Bitcoin (BTC)</option>
+                            <option value="eth">Ethereum (ETH)</option>
+                            <option value="usdt">Tether (USDT)</option>
+                        </select>
+                        <input type="text" id="osint-crypto-address" placeholder="Insira o endereço público da carteira" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+
+                    <div id="osint-group-cnpj_veiculo" class="osint-group hidden space-y-4">
+                        <label class="text-xs font-bold text-slate-300 block uppercase">Auditoria de Cadastros:</label>
+                        <select id="osint-cnpj-sub" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                            <option value="cnpj">Auditoria CNPJ de Empresa</option>
+                            <option value="veiculo">Placa de Veículo</option>
+                        </select>
+                        <input type="text" id="osint-cnpj-target" placeholder="Insira o número do CNPJ ou a Placa" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none">
+                    </div>
+
+                    <button type="submit" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-xs rounded-lg flex items-center justify-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4"></i><span>Iniciar Varredura Tática</span>
+                    </button>
+                </form>
+
+                <!-- Div de Loading -->
+                <div id="osint-loading-spinner" class="hidden py-8 text-center flex flex-col items-center justify-center gap-3">
+                    <div class="relative w-8 h-8">
+                        <div class="absolute top-0 left-0 w-full h-full border-2 border-cyan-500/20 rounded-full animate-pulse"></div>
+                        <div class="absolute top-0 left-0 w-full h-full border-2 border-t-cyan-400 rounded-full animate-spin"></div>
+                    </div>
+                    <span class="font-mono text-xs text-cyan-400 animate-pulse font-bold">PRECHLAK EXTRAINDO DADOS DO ALVO...</span>
+                </div>
+
+                <!-- Div de Resultado -->
+                <div id="osint-result-box" class="hidden bg-slate-950 rounded-xl border border-slate-850 p-5 space-y-4 shadow-xl">
+                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div class="flex items-center gap-3">
+                            <div id="osint-result-avatar" class="relative shrink-0 hidden">
+                                <img id="osint-result-img" src="" class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 object-cover">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-cyan-500 font-mono font-bold uppercase block">Relatório OSINT</span>
+                                <h3 id="osint-result-title" class="text-sm font-bold font-mono text-slate-200">Alvo: -</h3>
+                            </div>
+                        </div>
+                        <button onclick="saveResultToDossier()" class="px-3 py-1.5 border border-cyan-900 hover:bg-cyan-900/40 text-cyan-400 text-xs font-mono font-bold rounded-lg transition-colors flex items-center gap-1.5">
+                            <i data-lucide="folder-lock" class="w-3.5 h-3.5"></i> Salvar Dossiê
+                        </button>
+                    </div>
+                    <div id="osint-result-content" class="text-xs md:text-sm text-slate-300 font-mono leading-relaxed whitespace-pre-wrap space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CENTRAL DE DOSSIÊS -->
+            <div id="tab-dossier" class="tab-content hidden p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-200">
+                <div class="border-b border-slate-850 pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+                            <i data-lucide="folder-lock" class="w-5 h-5"></i> PRECHLAK COFRE DE DOSSIÊS
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Cofre de armazenamento e relatórios táticos de incidentes.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportDossiers()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs rounded-lg flex items-center gap-1.5">
+                            <i data-lucide="download" class="w-4 h-4"></i> Exportar (.TXT)
+                        </button>
+                        <button onclick="clearAllDossiers()" class="px-3 py-1.5 bg-slate-900 hover:bg-red-950/20 border border-slate-800 text-slate-400 text-xs rounded-lg flex items-center gap-1.5">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i> Limpar Cofre
+                        </button>
+                    </div>
+                </div>
+
+                <form id="dossier-manual-form" class="bg-slate-950 p-4 rounded-xl border border-slate-900 space-y-3 font-mono">
+                    <h3 class="text-xs font-bold uppercase text-cyan-400 flex items-center gap-1.5">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar Caso Manualmente
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input type="text" id="manual-alvo" placeholder="Identificador / Alvo" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none" required>
+                        <select id="manual-tipo" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none">
+                            <option value="Perfil Social">Perfil Social</option>
+                            <option value="Telefone">Telefone</option>
+                            <option value="IP Address">IP Address</option>
+                            <option value="Crypto Address">Crypto Address</option>
+                        </select>
+                        <select id="manual-risco" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none">
+                            <option value="ALTO RISCO">ALTO RISCO 🚨</option>
+                            <option value="SUSPEITO">SUSPEITO ⚠️</option>
+                            <option value="SEGURO">SEGURO ✅</option>
+                        </select>
+                    </div>
+                    <textarea id="manual-notes" placeholder="Detalhes e evidências táticas..." rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none font-mono" required></textarea>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-xs rounded-lg">Registrar</button>
+                    </div>
+                </form>
+
+                <div id="dossier-grid" class="space-y-3 font-mono"></div>
+            </div>
+
+            <!-- TAB 4: PAINEL ADMIN -->
+            <div id="tab-admin" class="tab-content hidden p-6 flex flex-col flex-grow overflow-y-auto space-y-6 custom-scrollbar animate-in fade-in duration-200">
+                <div class="border-b border-slate-850 pb-3">
+                    <h2 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+                        <i data-lucide="user-check" class="w-5 h-5"></i> PAINEL ADMINISTRADOR - CONTROLE DE ACESSO
+                    </h2>
+                </div>
+
+                <form id="admin-create-form" class="bg-slate-950 p-5 rounded-xl border border-slate-900 space-y-4 font-mono">
+                    <h3 class="text-xs font-bold uppercase text-cyan-400 flex items-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Gerar Credencial de Operador
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input type="text" id="admin-new-user" placeholder="Usuário" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200" required>
+                        <input type="text" id="admin-new-pass" placeholder="Senha" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200" required>
+                        <select id="admin-new-days" class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-200">
+                            <option value="1">1 Dia (Licença de Teste)</option>
+                            <option value="7">7 Dias (Semanal)</option>
+                            <option value="30">30 Dias (Mensal)</option>
+                            <option value="365">365 Dias (Anual)</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg">Ativar Licença</button>
+                    </div>
+                </form>
+
+                <!-- POPUP DE SUCESSO DE CRIAÇÃO -->
+                <div id="success-creation-card" class="hidden bg-slate-950 border border-emerald-500 rounded-xl p-5 font-mono text-xs space-y-3 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                    <div class="flex items-center gap-2 text-emerald-400 font-bold border-b border-emerald-900/60 pb-2 text-sm uppercase">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 animate-bounce"></i>
+                        <span>Login Criado com Sucesso!</span>
+                    </div>
+                    <div class="space-y-1.5 text-slate-300">
+                        <p>A conta foi gravada e sincronizada localmente e na nuvem de forma resiliente.</p>
+                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-850 space-y-1 mt-2 text-cyan-300 select-all font-mono" id="success-card-text">
+                            <!-- Injetado dinamicamente -->
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button onclick="copyCreationText()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-cyan-400 rounded text-[10px] flex items-center gap-1">
+                            <i data-lucide="clipboard" class="w-3.5 h-3.5"></i> Copiar Dados
+                        </button>
+                        <button onclick="closeSuccessCard()" class="px-3 py-1.5 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40 border border-emerald-800 rounded text-[10px]">
+                            OK
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-3 font-mono">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase">Licenças Ativas no Sistema</h3>
+                    <div class="bg-slate-950 border border-slate-900 rounded-xl overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-850">
+                                    <th class="p-3">Usuário</th>
+                                    <th class="p-3">Senha</th>
+                                    <th class="p-3">Nível</th>
+                                    <th class="p-3">Expiração (Dias)</th>
+                                    <th class="p-3 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-500 font-mono mt-auto">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>&copy; 2026 PRECHLAK. Licença autorizada de segurança e controle de acessos.</span>
+            <span class="text-[10px] text-cyan-500 flex items-center gap-1">
+                <i data-lucide="shield" class="w-3.5 h-3.5 animate-pulse text-cyan-400"></i>
+                PRECHLAK ACTIVE SECURE CLOUD CHANNEL
+            </span>
+        </div>
+    </footer>
+
+    <!-- LÓGICA DO SISTEMA JAVASCRIPT INTEGRADA AO FIREBASE COM CONEXÃO DE SEGURANÇA E CONTINGÊNCIA LOCAL -->
+    <script type="module">
+        import { doc, setDoc, getDoc, collection, onSnapshot, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        
+        // --- BANCO DE DADOS DE SEGURANÇA LOCAL (Sincronização Ininterrupta) ---
+        let usersDb = JSON.parse(localStorage.getItem('prechlak_users')) || [
+            { username: 'prechlak', password: '10072006', isAdmin: true, activeDays: 9999, createdAt: new Date().toISOString() }
+        ];
+        
+        let dossiers = JSON.parse(localStorage.getItem('prechlak_dossiers')) || [
+            { id: 'dos-1', tipo: 'Perfil (Instagram)', alvo: '@promocoes_relampago_br', risco: 'ALTO RISCO', observacoes: 'Perfil falso focado em golpes de e-commerce clonado.', data: '18/05/2026' }
+        ];
+
+        let currentUser = null;
+        let activeTab = 'terminal';
+        let currentOsintType = 'social';
+        let currentSocialPlat = 'instagram';
+        let currentOsintResult = null;
+        let isMonochrome = false;
+
+        let chatMessagesHistory = [
+            {
+                role: 'assistant',
+                content: `### 1. RESUMO\nPlataforma Operacional PRECHLAK v8.0 - Enterprise Control com Nuvem Sincronizada Resiliente.\n\n### 4. CONCLUSÃO\nClassificação: **SEGURO**`,
+                timestamp: new Date().toLocaleTimeString(),
+                status: 'SEGURO'
+            }
+        ];
+
+        // --- SISTEMA DE INICIALIZAÇÃO E OUVIDORES EM NUVEM ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            const auth = window.firebaseAuth;
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            // Renderização Inicial Imediata antes do Firebase para evitar Tela Branca
+            renderAdminTable();
+            renderDossiers();
+
+            if (auth && db) {
+                try {
+                    // Autenticação prévia (Regra 3)
+                    await window.firebaseAuth.service?.signInAnonymously?.(auth);
+                    
+                    const usersCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+                    const dossiersCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'dossiers');
+
+                    // Carrega dados da nuvem mantendo os locais se houver falha
+                    onSnapshot(usersCollectionRef, (querySnapshot) => {
+                        const loadedUsers = [];
+                        querySnapshot.forEach((doc) => {
+                            loadedUsers.push(doc.data());
+                        });
+                        if (loadedUsers.length > 0) {
+                            usersDb = loadedUsers;
+                            localStorage.setItem('prechlak_users', JSON.stringify(usersDb));
+                            renderAdminTable();
+                            updateExpiryCard();
+                        }
+                    }, (err) => console.log("Firebase desativado ou sem acesso direto. Rodando em contingência local ativa."));
+
+                    onSnapshot(dossiersCollectionRef, (querySnapshot) => {
+                        const loadedDossiers = [];
+                        querySnapshot.forEach((doc) => {
+                            loadedDossiers.push(doc.data());
+                        });
+                        if (loadedDossiers.length > 0) {
+                            dossiers = loadedDossiers;
+                            localStorage.setItem('prechlak_dossiers', JSON.stringify(dossiers));
+                            renderDossiers();
+                        }
+                    }, (err) => console.log("Controle de dossiers em contingência local ativa."));
+
+                } catch (error) {
+                    console.log("Serviço Firebase rodando em barramento híbrido offline. OPSEC ativa.");
+                }
+            }
+
+            lucide.createIcons();
+            renderChat();
+        });
+
+        // --- SISTEMA DE LOGIN SEGURO ---
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            const errorText = document.getElementById('login-error-text');
+
+            const foundUser = usersDb.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === passwordInput);
+
+            if (!foundUser) {
+                errorDiv.classList.remove('hidden');
+                errorText.textContent = "Acesso Negado: Usuário ou senha incorretos.";
+                return;
+            }
+
+            // Validar prazo
+            const created = new Date(foundUser.createdAt);
+            const expires = new Date(created.getTime() + foundUser.activeDays * 24 * 60 * 60 * 1000);
+            if (new Date() > expires && !foundUser.isAdmin) {
+                errorDiv.classList.remove('hidden');
+                errorText.textContent = "Acesso Negado: Esta licença expirou. Contate o administrador PRECHLAK.";
+                return;
+            }
+
+            currentUser = foundUser;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('operator-badge').textContent = `OPERADOR: ${currentUser.username.toUpperCase()}`;
+            
+            if (currentUser.isAdmin) {
+                document.getElementById('btn-tab-admin').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-tab-admin').classList.add('hidden');
+            }
+
+            triggerAlert(`Sessão ativa estabelecida para operador @${currentUser.username.toUpperCase()}`);
+            renderAdminTable();
+            updateExpiryCard();
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            currentUser = null;
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+            triggerAlert("Sessão finalizada.");
+        });
+
+        // --- EXPORTAR VARIÁVEIS OPERACIONAIS ---
+        window.switchTab = switchTab;
+        window.setOsintType = setOsintType;
+        window.setSocialPlat = setSocialPlat;
+        window.saveResultToDossier = saveResultToDossier;
+        window.deleteDossier = deleteDossier;
+        window.clearAllDossiers = clearAllDossiers;
+        window.exportDossiers = exportDossiers;
+        window.deleteUser = deleteUser;
+        window.closeSuccessCard = closeSuccessCard;
+        window.copyCreationText = copyCreationText;
+
+        // --- ALTERNAÇÃO DE ABAS ---
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-transparent text-slate-400 border-transparent hover:bg-slate-850 hover:text-slate-200";
+            });
+
+            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
+            if (activeBtn) {
+                if (isMonochrome) {
+                    activeBtn.className = "tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-slate-800 text-white border-slate-500 shadow-md";
+                } else {
+                    activeBtn.className = "tab-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono font-bold transition-all text-left border bg-cyan-950/40 text-cyan-400 border-cyan-800/80 shadow-[0_0_8px_rgba(34,211,238,0.15)]";
+                }
+            }
+        }
+
+        // --- SISTEMA DE EXPIRAÇÃO (CARD DINÂMICO) ---
+        function updateExpiryCard() {
+            if (!currentUser) return;
+            const userText = document.getElementById('expiry-user');
+            const daysText = document.getElementById('expiry-days');
+            const dateText = document.getElementById('expiry-date');
+            const expBar = document.getElementById('expiry-bar');
+
+            userText.textContent = `@${currentUser.username.toUpperCase()}`;
+
+            if (currentUser.isAdmin) {
+                daysText.textContent = "ILIMITADO";
+                dateText.textContent = "VITALÍCIO";
+                expBar.style.width = "100%";
+                expBar.className = "bg-emerald-500 h-1.5 rounded-full transition-all duration-500";
+            } else {
+                const createdDate = new Date(currentUser.createdAt);
+                const expirationTime = createdDate.getTime() + currentUser.activeDays * 24 * 60 * 60 * 1000;
+                const expirationDate = new Date(expirationTime);
+                const diffTime = expirationTime - new Date().getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                daysText.textContent = diffDays > 0 ? `${diffDays} dia(s)` : "EXPIRADO";
+                dateText.textContent = expirationDate.toLocaleDateString('pt-PT') + " às 23:59";
+
+                const progress = Math.max(0, Math.min(100, (diffDays / currentUser.activeDays) * 100));
+                expBar.style.width = `${progress}%`;
+
+                if (diffDays <= 3) {
+                    expBar.className = "bg-red-500 h-1.5 rounded-full transition-all duration-500 animate-pulse";
+                } else if (diffDays <= 10) {
+                    expBar.className = "bg-amber-500 h-1.5 rounded-full transition-all duration-500";
+                } else {
+                    expBar.className = "bg-cyan-500 h-1.5 rounded-full transition-all duration-500";
+                }
+            }
+        }
+
+        // --- ALTERNADOR DE TEMA ---
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            isMonochrome = !isMonochrome;
+            const body = document.body;
+            const toggleText = document.getElementById('theme-text');
+            const logoBg = document.getElementById('header-logo-bg');
+            const versionBadge = document.getElementById('version-badge');
+            const spanText = document.getElementById('header-span');
+
+            if (isMonochrome) {
+                toggleText.textContent = "MONO: ATIVO";
+                body.classList.remove('selection:bg-cyan-500/30');
+                body.classList.add('selection:bg-white/20');
+                logoBg.className = "p-2 bg-slate-800 border border-slate-700 rounded-lg";
+                versionBadge.className = "text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700 font-mono font-bold";
+                spanText.className = "text-white";
+                document.getElementById('live-bullet').className = "relative inline-flex rounded-full h-2 w-2 bg-white";
+                document.getElementById('ping-bullet').className = "w-1.5 h-1.5 rounded-full bg-white animate-ping inline-block";
+            } else {
+                toggleText.textContent = "TEMA: CYBER";
+                body.classList.add('selection:bg-cyan-500/30');
+                body.classList.remove('selection:bg-white/20');
+                logoBg.className = "p-2 bg-gradient-to-tr from-cyan-600 to-blue-700 rounded-lg border border-cyan-500/30";
+                versionBadge.className = "text-[10px] bg-cyan-950 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-800 font-mono font-bold";
+                spanText.className = "text-cyan-400";
+                document.getElementById('live-bullet').className = "relative inline-flex rounded-full h-2 w-2 bg-cyan-500";
+                document.getElementById('ping-bullet').className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block";
+            }
+
+            switchTab(activeTab);
+        });
+
+        // --- RENDERIZADORES ---
+        function renderChat() {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            
+            chatMessagesHistory.forEach(msg => {
+                const isUser = msg.role === 'user';
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex flex-col max-w-[85%] ${isUser ? 'ml-auto items-end' : 'mr-auto items-start'}`;
+                
+                const isSuspect = msg.status === 'ALTO RISCO' || msg.status === 'SUSPEITO';
+                const badgeColor = isSuspect ? 'bg-red-950 text-red-400 border-red-900 animate-pulse' : 'bg-emerald-950/60 text-emerald-300 border-emerald-800';
+
+                messageWrapper.innerHTML = `
+                    <div class="flex items-center gap-1.5 mb-1 px-1">
+                        <span class="text-[10px] text-slate-500 font-mono">${isUser ? 'OPERADOR' : 'PRECHLAK.EXE'} [${msg.timestamp}]</span>
+                        ${!isUser && msg.id !== 'welcome' ? `<span class="text-[9px] px-1.5 py-0.2 rounded font-mono border ${badgeColor}">${msg.status}</span>` : ''}
+                    </div>
+                    <div class="p-4 rounded-xl shadow-lg border text-slate-300 text-xs md:text-sm font-mono leading-relaxed ${isUser ? 'bg-slate-800/95 border-slate-700 rounded-tr-none' : 'bg-slate-900/60 border-slate-800 rounded-tl-none'}">
+                        ${isUser ? `<p class="whitespace-pre-wrap">${msg.content}</p>` : formatMarkdown(msg.content)}
+                    </div>
+                `;
+                container.appendChild(messageWrapper);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- SUBMISSÃO CHAT ---
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const inputField = document.getElementById('chat-input');
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            chatMessagesHistory.push({
+                role: 'user',
+                content: text,
+                timestamp: new Date().toLocaleTimeString()
+            });
+
+            inputField.value = '';
+            renderChat();
+
+            const container = document.getElementById('chat-messages');
+            const loader = document.createElement('div');
+            loader.id = "chat-loader";
+            loader.className = "flex flex-col items-start max-w-[80%]";
+            loader.innerHTML = `
+                <div class="p-4 rounded-xl border border-red-900 bg-slate-950/80 rounded-tl-none flex items-center gap-3">
+                    <div class="animate-spin rounded-full h-4 w-4 border-2 border-red-500 border-t-transparent"></div>
+                    <span class="font-mono text-xs text-red-400 animate-pulse font-bold">PRECHLAK TRIANGULANDO DADOS...</span>
+                </div>
+            `;
+            container.appendChild(loader);
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                const aiReply = await callGemini(text);
+                const replyStatus = aiReply.toUpperCase().includes('SUSPEITO') || aiReply.toUpperCase().includes('ALTO RISCO') ? 'ALTO RISCO' : 'SEGURO';
+
+                document.getElementById('chat-loader').remove();
+
+                chatMessagesHistory.push({
+                    role: 'assistant',
+                    content: aiReply,
+                    timestamp: new Date().toLocaleTimeString(),
+                    status: replyStatus
+                });
+
+                document.getElementById('status-text').textContent = replyStatus;
+                const statusBadge = document.getElementById('status-badge');
+                if (replyStatus === 'ALTO RISCO') {
+                    statusBadge.className = "px-3 py-1.5 rounded border border-red-600 bg-red-950/70 text-red-400 glow-red animate-pulse flex items-center gap-2 text-xs font-mono uppercase transition-all duration-300";
+                } else {
+                    statusBadge.className = "px-3 py-1.5 rounded border border-emerald-800 bg-emerald-950/20 text-emerald-300 flex items-center gap-2 text-xs font-mono uppercase transition-all duration-300";
+                }
+
+                renderChat();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('chat-loader').remove();
+                chatMessagesHistory.push({
+                    role: 'assistant',
+                    content: `### ❌ ERRO OPERACIONAL\nIncapaz de estabelecer contato com o gateway PRECHLAK.\n\nDetalhes: ${err.message}`,
+                    timestamp: new Date().toLocaleTimeString(),
+                    status: 'ALTO RISCO'
+                });
+                renderChat();
+            }
+        });
+
+        // --- SISTEMA OSINT ---
+        function setOsintType(type) {
+            currentOsintType = type;
+            document.querySelectorAll('.osint-selector').forEach(btn => {
+                btn.className = "osint-selector p-3 rounded-xl border border-slate-900 bg-slate-950/50 text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all";
+            });
+            document.getElementById(`osint-btn-${type}`).className = "osint-selector p-3 rounded-xl border border-cyan-500/60 bg-cyan-950/30 text-cyan-300 font-mono text-xs flex flex-col items-center justify-center gap-1.5 transition-all";
+
+            document.querySelectorAll('.osint-group').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`osint-group-${type}`).classList.remove('hidden');
+        }
+
+        function setSocialPlat(plat) {
+            currentSocialPlat = plat;
+            document.querySelectorAll('.plat-btn').forEach(btn => {
+                btn.className = "plat-btn p-2 rounded-lg border border-slate-900 bg-slate-900/40 text-slate-400 text-xs capitalize";
+            });
+            document.getElementById(`plat-${plat}`).className = "plat-btn p-2 rounded-lg border border-cyan-800 bg-cyan-950/40 text-cyan-400 text-xs font-bold capitalize";
+        }
+
+        document.getElementById('osint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('osint-loading-spinner').classList.remove('hidden');
+            document.getElementById('osint-result-box').classList.add('hidden');
+
+            let query = '';
+            let promptText = '';
+
+            if (currentOsintType === 'social') {
+                const user = document.getElementById('osint-username').value.trim();
+                query = `@${user} (${currentSocialPlat})`;
+                promptText = `Realize uma auditoria forense detalhada de conta de rede social: Plataforma: ${currentSocialPlat.toUpperCase()}, Username: ${user}. Avalie fakes, bots, engajamento e risco real de segurança de forma extremamente profunda e extraia todas as informações possíveis da conta.`;
+            } else if (currentOsintType === 'phone') {
+                const phone = document.getElementById('osint-phone-input').value.trim();
+                const ip = document.getElementById('osint-phone-ip').value.trim();
+                query = `${phone} [IP: ${ip || 'N/A'}]`;
+                promptText = `Realize a triangulação e investigação forense do Telefone: ${phone} com o IP associado: ${ip}. Cruse dados geográficos, operadora, e extraia o endereço de onde o número está cadastrado ou onde o IP está ativo.`;
+            } else if (currentOsintType === 'crypto') {
+                const chain = document.getElementById('osint-crypto-chain').value;
+                const wallet = document.getElementById('osint-crypto-address').value.trim();
+                query = `${wallet} (${chain.toUpperCase()})`;
+                promptText = `Realize o rastreamento financeiro forense na blockchain da carteira: ${wallet} na rede ${chain.toUpperCase()}. Detalhe as conexões de evasão de divisas.`;
+            } else if (currentOsintType === 'cnpj_veiculo') {
+                const sub = document.getElementById('osint-cnpj-sub').value;
+                const targetVal = document.getElementById('osint-cnpj-target').value.trim();
+                query = `${targetVal} (${sub.toUpperCase()})`;
+                promptText = sub === 'cnpj' 
+                    ? `Faça uma auditoria de risco corporativo completo para o CNPJ: ${targetVal}. Identifique lógicas de empresas fantasma.`
+                    : `Faça a verificação veicular forense completa para a Placa: ${targetVal}. Sinais de clonagem ou adulteração de chassi.`;
+            }
+
+            try {
+                const aiResultText = await callGemini(promptText);
+                currentOsintResult = {
+                    tipo: currentOsintType.toUpperCase(),
+                    alvo: query,
+                    analise: aiResultText,
+                    avatarUrl: currentOsintType === 'social' ? `https://api.dicebear.com/7.x/bottts/svg?seed=${query}` : null
+                };
+
+                document.getElementById('osint-result-title').textContent = `Alvo: ${query}`;
+                const resultBox = document.getElementById('osint-result-content');
+                resultBox.innerHTML = formatMarkdown(aiResultText);
+
+                const avatarBox = document.getElementById('osint-result-avatar');
+                if (currentOsintResult.avatarUrl) {
+                    document.getElementById('osint-result-img').src = currentOsintResult.avatarUrl;
+                    avatarBox.classList.remove('hidden');
+                } else {
+                    avatarBox.classList.add('hidden');
+                }
+
+                document.getElementById('osint-loading-spinner').classList.add('hidden');
+                document.getElementById('osint-result-box').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('osint-loading-spinner').classList.add('hidden');
+                triggerAlert(`Falha OSINT: ${err.message}`);
+            }
+        });
+
+        // --- CLOUD FIRESTORE INTEGRATION ---
+        async function saveResultToDossier() {
+            if (!currentOsintResult) return;
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            const isDanger = currentOsintResult.analise.toUpperCase().includes('ALTO RISCO') || currentOsintResult.analise.toUpperCase().includes('SUSPEITO');
+            const dossierId = 'dos-' + Date.now();
+
+            const newDossierItem = {
+                id: dossierId,
+                tipo: currentOsintResult.tipo,
+                alvo: currentOsintResult.alvo,
+                risco: isDanger ? 'ALTO RISCO' : 'SEGURO',
+                observacoes: currentOsintResult.analise.substring(0, 300) + '...',
+                data: new Date().toLocaleDateString('pt-PT')
+            };
+
+            // Guarda sempre localmente primeiro
+            dossiers.unshift(newDossierItem);
+            localStorage.setItem('prechlak_dossiers', JSON.stringify(dossiers));
+            renderDossiers();
+
+            if (db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dossiers', dossierId);
+                try {
+                    await setDoc(docRef, newDossierItem);
+                    triggerAlert("Dossiê sincronizado em nuvem.");
+                } catch (e) {
+                    console.log("Dossiê salvo em ambiente local ativo.");
+                }
+            } else {
+                triggerAlert("Dossiê salvo em contingência local.");
+            }
+        }
+
+        async function deleteDossier(id) {
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            dossiers = dossiers.filter(d => d.id !== id);
+            localStorage.setItem('prechlak_dossiers', JSON.stringify(dossiers));
+            renderDossiers();
+
+            if (db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dossiers', id);
+                try {
+                    await deleteDoc(docRef);
+                    triggerAlert("Registro excluído na nuvem.");
+                } catch (e) {
+                    console.log("Removido localmente.");
+                }
+            } else {
+                triggerAlert("Registro removido localmente.");
+            }
+        }
+
+        function renderDossiers() {
+            const grid = document.getElementById('dossier-grid');
+            const quickList = document.getElementById('quick-dossier-list');
+
+            grid.innerHTML = '';
+            quickList.innerHTML = '';
+
+            if (dossiers.length === 0) {
+                grid.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">Cofre de inteligência vazio.</div>`;
+                quickList.innerHTML = `<span class="text-[10px] text-slate-500 block text-center py-2">Nenhum dossiê</span>`;
+                return;
+            }
+
+            dossiers.forEach(d => {
+                const isDanger = d.risco === 'ALTO RISCO' || d.risco === 'SUSPEITO';
+                const badgeColor = isDanger ? 'bg-red-950/70 text-red-400 border-red-800 glow-red animate-pulse' : 'bg-emerald-950/60 text-emerald-300 border-emerald-600';
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-950 p-4 rounded-xl border border-slate-900 flex flex-col space-y-3 relative group";
+                card.innerHTML = `
+                    <button onclick="deleteDossier('${d.id}')" class="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-red-400 bg-slate-900 hover:bg-slate-850 rounded border border-slate-850 transition-all">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] px-2 py-0.5 rounded border font-bold uppercase bg-cyan-950/40 text-cyan-400 border-cyan-900">${d.tipo}</span>
+                        <span class="text-[10px] text-slate-500">Arquivado: ${d.data}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded border font-bold ml-auto ${badgeColor}">${d.risco}</span>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-200 select-all">${d.alvo}</h4>
+                        <p class="text-xs text-slate-400 mt-2 whitespace-pre-wrap bg-slate-900/40 p-3 rounded-lg border border-slate-850">${d.observacoes}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+
+                const li = document.createElement('div');
+                li.className = "p-1.5 bg-slate-950 rounded border border-slate-900 flex justify-between items-center gap-2";
+                li.innerHTML = `
+                    <div class="min-w-0 flex-grow">
+                        <span class="text-[9px] text-cyan-400 block font-bold truncate">${d.tipo}</span>
+                        <span class="text-[11px] text-slate-300 font-semibold truncate block">${d.alvo}</span>
+                    </div>
+                    <span class="text-[8px] px-1 rounded border font-bold shrink-0 ${isDanger ? 'border-red-800 text-red-500 bg-red-950/20' : 'border-slate-800 text-slate-400 bg-slate-950'}">${d.risco.split(' ')[0]}</span>
+                `;
+                quickList.appendChild(li);
+            });
+
+            lucide.createIcons();
+        }
+
+        // --- SUBMISSAO DOSSIER MANUAL ---
+        document.getElementById('dossier-manual-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            const alvo = document.getElementById('manual-alvo').value.trim();
+            const tipo = document.getElementById('manual-tipo').value;
+            const risco = document.getElementById('manual-risco').value;
+            const notes = document.getElementById('manual-notes').value.trim();
+            const dossierId = 'dos-' + Date.now();
+
+            const manualDossier = {
+                id: dossierId,
+                tipo: tipo,
+                alvo: alvo,
+                risco: risco,
+                observacoes: notes,
+                data: new Date().toLocaleDateString('pt-PT')
+            };
+
+            dossiers.unshift(manualDossier);
+            localStorage.setItem('prechlak_dossiers', JSON.stringify(dossiers));
+            renderDossiers();
+
+            if (db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dossiers', dossierId);
+                try {
+                    await setDoc(docRef, manualDossier);
+                } catch (err) {
+                    console.log("Erro de gravação em nuvem.");
+                }
+            }
+            document.getElementById('dossier-manual-form').reset();
+            triggerAlert("Dossiê manual inserido.");
+        });
+
+        // --- LIMPEZA DE DOSSIÊS ---
+        async function clearAllDossiers() {
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            if (window.confirm("Deseja apagar TODOS os dossiês salvos da nuvem?")) {
+                dossiers = [];
+                localStorage.setItem('prechlak_dossiers', JSON.stringify(dossiers));
+                renderDossiers();
+
+                if (db) {
+                    try {
+                        const querySnapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'dossiers'));
+                        querySnapshot.forEach(async (docSnap) => {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dossiers', docSnap.id));
+                        });
+                    } catch (e) {}
+                }
+                triggerAlert("Cofre operacional limpo.");
+            }
+        }
+
+        // --- GERENCIAMENTO DE LOGINS POR ADMIN (REGRA 1 & CONTINGÊNCIA) ---
+        document.getElementById('admin-create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            const usernameInput = document.getElementById('admin-new-user').value.trim();
+            const passwordInput = document.getElementById('admin-new-pass').value.trim();
+            const daysInput = parseInt(document.getElementById('admin-new-days').value);
+
+            if (usersDb.some(u => u.username.toLowerCase() === usernameInput.toLowerCase())) {
+                triggerAlert("Erro: Este usuário já está cadastrado.");
+                return;
+            }
+
+            const createdAt = new Date().toISOString();
+            const newUser = {
+                username: usernameInput,
+                password: passwordInput,
+                isAdmin: false,
+                activeDays: daysInput,
+                createdAt: createdAt
+            };
+
+            // Salva Localmente de Forma Segura Garantida
+            usersDb.push(newUser);
+            localStorage.setItem('prechlak_users', JSON.stringify(usersDb));
+            renderAdminTable();
+
+            if (db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', usernameInput.toLowerCase());
+                try {
+                    await setDoc(docRef, newUser);
+                } catch (err) {
+                    console.log("Usuário gravado em contingência local ativa.");
+                }
+            }
+
+            // Exibe Sucesso
+            const expirationDate = new Date(new Date().getTime() + daysInput * 24 * 60 * 60 * 1000);
+            const dateString = expirationDate.toLocaleDateString('pt-PT') + " às 23:59";
+
+            const creationCard = document.getElementById('success-creation-card');
+            const creationText = document.getElementById('success-card-text');
+            
+            creationText.innerHTML = `
+                <strong>LOGIN:</strong> ${usernameInput}<br>
+                <strong>SENHA:</strong> ${passwordInput}<br>
+                <strong>PERÍODO ATIVO:</strong> ${daysInput} dias<br>
+                <strong>EXPIRAÇÃO AUTOMÁTICA EM:</strong> ${dateString}
+            `;
+            
+            creationCard.classList.remove('hidden');
+            document.getElementById('admin-create-form').reset();
+            triggerAlert("LOGIN CRIADO COM SUCESSO!");
+            lucide.createIcons();
+        });
+
+        function closeSuccessCard() {
+            document.getElementById('success-creation-card').classList.add('hidden');
+        }
+
+        function copyCreationText() {
+            const rawText = document.getElementById('success-card-text').innerText;
+            const tempInput = document.createElement("textarea");
+            tempInput.value = `PRECHLAK OSINT - CREDENCIAIS ATIVADAS\n\n${rawText}\n\nAcesse o link do sistema para autenticação operacional.`;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            triggerAlert("Informações de acesso copiadas!");
+        }
+
+        async function deleteUser(username) {
+            const db = window.firebaseDb;
+            const appId = window.firebaseAppId;
+
+            if (username === 'prechlak') {
+                triggerAlert("Erro: Administrador principal não pode ser deletado.");
+                return;
+            }
+
+            usersDb = usersDb.filter(u => u.username !== username);
+            localStorage.setItem('prechlak_users', JSON.stringify(usersDb));
+            renderAdminTable();
+
+            if (db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', username.toLowerCase());
+                try {
+                    await deleteDoc(docRef);
+                } catch (err) {}
+            }
+            triggerAlert(`Usuário @${username} removido.`);
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-users-table');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            usersDb.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-900/60 hover:bg-slate-900/20";
+                
+                let remainingDaysText = '';
+                if (u.isAdmin) {
+                    remainingDaysText = 'Ilimitado';
+                } else {
+                    const createdDate = new Date(u.createdAt);
+                    const expirationTime = createdDate.getTime() + u.activeDays * 24 * 60 * 60 * 1000;
+                    const diffTime = expirationTime - new Date().getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    remainingDaysText = diffDays > 0 ? `${diffDays} dia(s) restante(s)` : 'Expirado';
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-200">@${u.username}</td>
+                    <td class="p-3 text-slate-400 font-mono">${u.password}</td>
+                    <td class="p-3">
+                        <span class="px-1.5 py-0.5 rounded text-[10px] border ${u.isAdmin ? 'bg-cyan-950 text-cyan-400 border-cyan-800' : 'bg-slate-900 text-slate-400 border-slate-800'}">${u.isAdmin ? 'ADMIN' : 'OPERADOR'}</span>
+                    </td>
+                    <td class="p-3 text-slate-300 font-mono">${remainingDaysText}</td>
+                    <td class="p-3 text-right">
+                        ${u.username !== 'prechlak' ? `<button onclick="deleteUser('${u.username}')" class="text-red-500 hover:text-red-400">Remover</button>` : `<span class="text-slate-600">-</span>`}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- UTILS ---
+        function exportDossiers() {
+            if (dossiers.length === 0) return;
+            let text = "========================================================\n";
+            text += "       PRECHLAK - INTEGRAÇÃO DE DOSSIÊS FORENSES\n";
+            text += `       Relatório Gerado em: ${new Date().toLocaleString()}\n`;
+            text += "========================================================\n\n";
+
+            dossiers.forEach((d, idx) => {
+                text += `[CASO REGISTRADO #${idx + 1}]\n`;
+                text += `Tipo de Alvo: ${d.tipo}\n`;
+                text += `Identificador: ${d.alvo}\n`;
+                text += `Classificação de Risco: ${d.risco}\n`;
+                text += `Data de Registro: ${d.data}\n`;
+                text += `Notas Técnicas:\n${d.observacoes}\n`;
+                text += "--------------------------------------------------------\n\n";
+            });
+
+            const element = document.createElement("a");
+            const file = new Blob([text], { type: 'text/plain' });
+            element.href = URL.createObjectURL(file);
+            element.download = `Prechlak-Cofre-${Date.now()}.txt`;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return "";
+            let html = text;
+
+            html = html.replace(/###\s+(.*)/g, '<h4 class="text-xs md:text-sm font-bold border-b border-slate-800 pb-1 mt-4 mb-2 uppercase font-mono text-slate-100">$1</h4>');
+            html = html.replace(/^\*\s+(.*)/gm, '<div class="flex items-start gap-2 pl-3 text-slate-300 text-xs md:text-sm"><span class="text-cyan-500 mt-1.5 h-1 w-1 rounded-full bg-cyan-400 shrink-0"></span><p>$1</p></div>');
+            html = html.replace(/^-\s+(.*)/gm, '<div class="flex items-start gap-2 pl-3 text-slate-300 text-xs md:text-sm"><span class="text-cyan-500 mt-1.5 h-1 w-1 rounded-full bg-cyan-400 shrink-0"></span><p>$1</p></div>');
+
+            html = html.replace(/\*\*(.*?)\*\*/g, (match, p1) => {
+                const upper = p1.toUpperCase();
+                const isDanger = upper.includes('SUSPEITO') || upper.includes('ALTO RISCO') || upper.includes('DANGER') || upper.includes('GOLPE') || upper.includes('FAKE');
+                
+                if (isDanger) {
+                    return `<strong class="text-red-500 bg-red-900/40 px-1.5 py-0.5 rounded border border-red-800 animate-pulse inline-block font-black">$1</strong>`;
+                }
+                return `<strong class="text-slate-100 font-bold">$1</strong>`;
+            });
+
+            return html;
+        }
+
+        // --- SISTEMA DE CHAMADA À API ---
+        async function callGemini(promptText) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("A API do Gemini falhou ou expirou.");
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na geração de resposta.";
+        }
+    </script>
+</body>
+</html>
+
+```
